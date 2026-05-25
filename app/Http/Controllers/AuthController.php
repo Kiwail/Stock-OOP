@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
+use App\Models\Firma;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +32,10 @@ class AuthController extends Controller
 
         $user = User::create($attributes);
 
+        $firma = Firma::query()->create(['name' => $user->name.' SIA']);
+        $firma->users()->attach($user->id, ['role' => UserRole::Admin->value]);
+        session(['firma_id' => $firma->id]);
+
         Auth::login($user);
         $request->session()->regenerate();
 
@@ -45,7 +51,7 @@ class AuthController extends Controller
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()
-                ->withErrors(['email' => 'Неверный email или пароль.'])
+                ->withErrors(['email' => 'Nepareizs e-pasts vai parole.'])
                 ->onlyInput('email');
         }
 

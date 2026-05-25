@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockDocument extends Model
 {
@@ -19,6 +21,7 @@ class StockDocument extends Model
         'destination_stock_id',
         'firma_id',
         'posted',
+        'cancelled',
         'deleted',
         'comment',
     ];
@@ -28,6 +31,7 @@ class StockDocument extends Model
         return [
             'date_add' => 'datetime',
             'posted' => 'boolean',
+            'cancelled' => 'boolean',
             'deleted' => 'boolean',
         ];
     }
@@ -40,5 +44,25 @@ class StockDocument extends Model
     public function operator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'operator_id');
+    }
+
+    public function sourceStock(): BelongsTo
+    {
+        return $this->belongsTo(Stock::class, 'source_stock_id');
+    }
+
+    public function destinationStock(): BelongsTo
+    {
+        return $this->belongsTo(Stock::class, 'destination_stock_id');
+    }
+
+    public function lines(): HasMany
+    {
+        return $this->hasMany(StockDocumentProduct::class, 'document_id');
+    }
+
+    public function typeEnum(): DocumentType
+    {
+        return DocumentType::from($this->type);
     }
 }

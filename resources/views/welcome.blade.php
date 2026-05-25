@@ -442,94 +442,20 @@
                 <div class="stats" aria-label="Noliktavas kopsavilkums">
                     <div class="stat">
                         <span>Uzskaitē esošās preces</span>
-                        <strong>1 284</strong>
+                        <strong>{{ number_format($stats['stock_qty'], 0, ',', ' ') }}</strong>
                     </div>
                     <div class="stat">
                         <span>Atvērtie dokumenti</span>
-                        <strong>18</strong>
+                        <strong>{{ $stats['open_documents'] }}</strong>
                     </div>
                     <div class="stat">
                         <span>Noliktavas</span>
-                        <strong>4</strong>
+                        <strong>{{ $stats['warehouses'] }}</strong>
                     </div>
                 </div>
             </section>
 
-            <section class="panel" aria-label="Noliktavas sistēmas pārskats">
-                <div class="panel-head">
-                    <div class="panel-title">
-                        <span class="icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M3.5 20.5h17M5 20V8l7-4 7 4v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M8 20v-7h8v7M7.5 9.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <strong>Galvenā noliktava</strong>
-                            <span>Riga DC-01 · atjaunināts tikko</span>
-                        </div>
-                    </div>
-                    <span class="status">Aktīvs</span>
-                </div>
-
-                <div class="warehouse-map">
-                    <div class="shelves" aria-hidden="true">
-                        <div class="shelf">
-                            <div class="box-row"></div>
-                            <div class="box-row hot"></div>
-                            <div class="box-row"></div>
-                        </div>
-                        <div class="shelf">
-                            <div class="box-row"></div>
-                            <div class="box-row"></div>
-                            <div class="box-row"></div>
-                        </div>
-                        <div class="shelf">
-                            <div class="box-row hot"></div>
-                            <div class="box-row"></div>
-                            <div class="box-row"></div>
-                        </div>
-                    </div>
-
-                    <div class="dock">Pieņemšana<br>un nosūtīšana</div>
-                </div>
-
-                <div class="table">
-                    <div class="row">
-                        <div class="cell">UTP Cat.6 kabelis<small>SKU-1048 · partija #458</small></div>
-                        <div class="cell">Zona A-12<small>FIFO 17.05.2026</small></div>
-                        <div class="cell">240 gab.</div>
-                        <div class="cell"><span class="badge ok">Normā</span></div>
-                    </div>
-                    <div class="row">
-                        <div class="cell">Svītrkodu skeneris<small>SKU-2201 · partija #441</small></div>
-                        <div class="cell">Zona B-04<small>FIFO 12.05.2026</small></div>
-                        <div class="cell">15 gab.</div>
-                        <div class="cell"><span class="badge warn">Pārbaudīt</span></div>
-                    </div>
-                    <div class="row">
-                        <div class="cell">Iepakošanas lente<small>SKU-0312 · partija #463</small></div>
-                        <div class="cell">Zona C-02<small>FIFO 16.05.2026</small></div>
-                        <div class="cell">6 gab.</div>
-                        <div class="cell"><span class="badge low">Maz</span></div>
-                    </div>
-                </div>
-
-                <div class="documents">
-                    <div class="document">
-                        <strong>Saņemšana #1024</strong>
-                        <span>Gaida grāmatošanu</span>
-                    </div>
-                    <div class="document">
-                        <strong>Pārvietošana #317</strong>
-                        <span>Noliktava A → Noliktava B</span>
-                    </div>
-                    <div class="document">
-                        <strong>Norakstīšana #58</strong>
-                        <span>Izveidoja operators</span>
-                    </div>
-                </div>
-            </section>
+            @include('partials.stock-preview')
         </main>
     </div>
 </body>
