@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
+use App\Support\FirmaContext;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -59,5 +61,15 @@ class User extends Authenticatable
     public function stockDocuments(): HasMany
     {
         return $this->hasMany(StockDocument::class, 'operator_id');
+    }
+
+    public function roleForCurrentFirma(): ?UserRole
+    {
+        return FirmaContext::role();
+    }
+
+    public function isAdmin(): bool
+    {
+        return FirmaContext::isAdmin();
     }
 }

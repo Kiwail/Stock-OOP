@@ -35,4 +35,9 @@ class Firma extends Model
     {
         return $this->hasMany(StockDocument::class);
     }
+
+    public function stocks(): HasMany
+    {
+        return $this->hasMany(Stock::class);
+    }
 }

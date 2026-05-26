@@ -1,59 +1,293 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# In Stock — noliktavas uzskaites sistēma
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel tīmekļa lietotne noliktavas uzskaitei. Projekts paredzēts objektorientētās programmēšanas kursam un demonstrē darbu ar modeļiem, kontrolieriem, servisiem, enum klasēm, middleware, relācijām un testiem.
 
-## About Laravel
+Sistēma ļauj pārvaldīt preces, firmas noliktavas, atlikumus, dokumentus un preču kustības starp noliktavām.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Galvenās iespējas
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Lietotāju reģistrācija un pieslēgšanās
+- Firmas konteksts katram lietotājam
+- Lomas: administrators un noliktavas darbinieks
+- Preču katalogs ar iepirkuma un realizācijas cenām
+- Noliktavu saraksts katrai firmai
+- Atlikumu uzskaite pa noliktavām, FIFO partijām un zonām
+- Noliktavas dokumenti:
+  - saņemšana
+  - norakstīšana
+  - pārvietošana
+  - realizācija
+- Dokumentu melnraksti
+- Melnrakstu labošana un dzēšana
+- Dokumentu grāmatošana
+- Grāmatotu dokumentu atcelšana administratoram
+- Preču kustību vēsture no grāmatojumu žurnāla
+- CSV eksports precēm, atlikumiem, dokumentiem un kustībām
+- Drukājams dokumenta skats
+- Dashboard ar kopsavilkumu un analītiku
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Demo konti
 
-## Learning Laravel
+| Loma | E-pasts | Parole |
+|------|---------|--------|
+| Administrators | admin@instock.lv | password |
+| Noliktavas darbinieks | operators@instock.lv | password |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Jauns reģistrēts lietotājs automātiski izveido savu firmu un kļūst par šīs firmas administratoru.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Lomas un tiesības
 
-## Laravel Sponsors
+**Administrators** var:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- pievienot, labot un dzēst preces
+- pievienot, labot un dzēst noliktavas
+- veidot un grāmatot dokumentus
+- atcelt grāmatotus dokumentus
+- skatīt atlikumus, dokumentus, kustības un eksportēt CSV
 
-### Premium Partners
+**Noliktavas darbinieks** var:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- skatīt preces un noliktavas
+- veidot un grāmatot dokumentus
+- skatīt atlikumus, dokumentus un kustības
+- eksportēt CSV
+- nevar labot preču/noliktavu katalogus
+- nevar atcelt grāmatotus dokumentus
 
-## Contributing
+## Moduļi
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Sākumlapa
 
-## Code of Conduct
+Publiska lapa ar noliktavas sistēmas aprakstu un demo firmas datu pārskatu.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Dashboard
 
-## Security Vulnerabilities
+Pēc pieslēgšanās rāda:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- kopējo preču daudzumu uzskaitē
+- krājumu vērtību
+- atvērtos dokumentus
+- noliktavu skaitu
+- zema atlikuma preču skaitu
+- atvērtos dokumentus pēc tipa
+- top preces pēc vērtības
+- pēdējos apstiprinātos dokumentus
 
-## License
+### Produkti
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Preču katalogs ar:
+
+- nosaukumu
+- iepirkuma cenu
+- realizācijas cenu
+- mērvienību
+- CSV eksportu
+
+Preču pievienošana, labošana un dzēšana pieejama tikai administratoram.
+
+### Noliktavas
+
+Firmas noliktavu saraksts. Noliktavu pievienošana, labošana un dzēšana pieejama tikai administratoram.
+
+### Atlikumi
+
+Atlikumu pārskats pa:
+
+- noliktavu
+- preci
+- zonu
+- FIFO partiju
+- daudzumu
+- cenu
+
+Pieejami filtri:
+
+- noliktava
+- prece
+- zona
+- partija
+- tikai zemi atlikumi
+
+Pieejams CSV eksports.
+
+### Dokumenti
+
+Dokumentu sadaļā var:
+
+- izveidot dokumenta melnrakstu
+- labot melnrakstu
+- dzēst melnrakstu
+- grāmatot dokumentu
+- skatīt dokumenta detaļas
+- drukāt dokumentu
+- atcelt grāmatotu dokumentu
+- eksportēt dokumentu sarakstu CSV
+
+Pieejami dokumentu tipi:
+
+- saņemšana
+- norakstīšana
+- pārvietošana
+- realizācija
+
+Pieejami filtri:
+
+- dokumenta tips
+- statuss: melnraksts, apstiprināts, atcelts
+- avota noliktava
+- mērķa noliktava
+- operators
+- datuma intervāls
+- komentāra meklēšana
+
+### Kustību vēsture
+
+Preču kustību vēsture tiek veidota no `stock_document_ledger` tabulas. Tā rāda katru grāmatojuma izmaiņu:
+
+- dokumentu
+- dokumenta tipu
+- datumu
+- preci
+- noliktavu
+- zonu
+- partiju
+- daudzuma izmaiņu
+
+Pieejami filtri un CSV eksports.
+
+## Datu bāzes struktūras ideja
+
+Svarīgākās tabulas:
+
+- `users` — lietotāji
+- `firma` — firmas
+- `firma_user` — lietotāja piesaiste firmai un loma
+- `product` — preču katalogs
+- `stock` — firmas noliktavas
+- `stock_document` — noliktavas dokumenta galvene
+- `stock_document_product` — dokumenta rindas
+- `product_stock` — faktiskie atlikumi pa partijām un zonām
+- `stock_document_ledger` — grāmatoto kustību žurnāls
+
+Preces ir kopīgs katalogs, bet atlikumi, noliktavas un dokumenti ir piesaistīti firmai.
+
+## OOP struktūra
+
+Projektā izmantotas vairākas objektorientētas daļas:
+
+- **Modeļi**: `Product`, `Stock`, `StockDocument`, `ProductStock`, `Firma`, `User`
+- **Servisi**:
+  - `StockDocumentService` — dokumentu grāmatošana, FIFO atlikumu maiņa, atcelšana
+  - `StockOverviewService` — dashboard un pārskatu dati
+  - `CsvExportService` — CSV failu ģenerēšana
+- **Enum klases**:
+  - `DocumentType`
+  - `UserRole`
+- **Middleware**:
+  - `EnsureFirma`
+  - `EnsureAdmin`
+- **Kontrolieri**:
+  - `DocumentController`
+  - `BalanceController`
+  - `MovementController`
+  - `ProductController`
+  - `WarehouseController`
+  - `DashboardController`
+  - `AuthController`
+
+## Palaišana
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+npm install
+npm run build
+php artisan serve
+```
+
+Atveriet:
+
+```text
+http://127.0.0.1:8000
+```
+
+Laravel Herd vidē projektu var atvērt arī caur `.test` domēnu, piemēram:
+
+```text
+http://noliktavassistema.test
+```
+
+## Datu bāze
+
+Projekts var strādāt ar SQLite, MySQL vai MariaDB, atkarībā no `.env` konfigurācijas.
+
+Lokālai MariaDB konfigurācijai piemērs:
+
+```env
+DB_CONNECTION=mariadb
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=stock_oop
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Pēc `.env` izmaiņām:
+
+```bash
+php artisan config:clear
+php artisan migrate --seed
+```
+
+Ja vajag pilnībā pārbūvēt lokālo datu bāzi:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+## Testēšana
+
+Projektā ir PHPUnit testi galvenajai funkcionalitātei.
+
+Palaist testus:
+
+```bash
+php artisan test
+```
+
+Testi pārbauda:
+
+- sākumlapas darbību
+- firmas konteksta validāciju
+- dokumentu validāciju
+- dzēstu preču aizliegšanu dokumentos
+- dokumentu filtrus un eksportu lapu pieejamību
+- melnrakstu labošanu un dzēšanu
+- saņemšanas dokumenta grāmatošanu
+- norakstīšanu un atcelšanu
+- pārvietošanu starp noliktavām
+- realizāciju
+- operatora piekļuves ierobežojumus administratora darbībām
+
+## Pēc koda atjaunināšanas
+
+```bash
+git pull origin Dev
+composer install
+php artisan migrate --seed
+npm install
+npm run build
+php artisan test
+```
+
+## Tehnoloģijas
+
+- PHP 8.2+
+- Laravel 12
+- Blade
+- Vite
+- Tailwind CSS
+- MySQL / MariaDB / SQLite
+- PHPUnit
