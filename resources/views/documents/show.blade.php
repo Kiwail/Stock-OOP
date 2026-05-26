@@ -10,10 +10,17 @@
         </div>
         <div class="actions">
             <a class="button secondary" href="{{ route('documents.index') }}">Atpakaļ</a>
+            <a class="button secondary" href="{{ route('documents.print', $document) }}">Drukāt</a>
             @if (! $document->posted && ! $document->cancelled)
+                <a class="button secondary" href="{{ route('documents.edit', $document) }}">Labot</a>
                 <form method="POST" action="{{ route('documents.post', $document) }}" onsubmit="return confirm('Apstiprināt dokumentu? Atlikumi tiks mainīti.')">
                     @csrf
                     <button class="button" type="submit">Apstiprināt (grāmatot)</button>
+                </form>
+                <form method="POST" action="{{ route('documents.destroy', $document) }}" onsubmit="return confirm('Dzēst melnrakstu?')">
+                    @csrf
+                    @method('DELETE')
+                    <button class="button ghost" type="submit">Dzēst melnrakstu</button>
                 </form>
             @endif
             @if ($document->posted && ! $document->cancelled && auth()->user()->isAdmin())

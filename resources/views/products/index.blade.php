@@ -8,9 +8,12 @@
             <h1>Produkti</h1>
             <p>Preču katalogs ar cenām un mērvienībām</p>
         </div>
-        @if (auth()->user()->isAdmin())
-            <a class="button" href="{{ route('products.create') }}">Pievienot produktu</a>
-        @endif
+        <div class="actions">
+            <a class="button secondary" href="{{ route('products.export') }}">CSV</a>
+            @if (auth()->user()->isAdmin())
+                <a class="button" href="{{ route('products.create') }}">Pievienot produktu</a>
+            @endif
+        </div>
     </div>
 
     <div class="card">

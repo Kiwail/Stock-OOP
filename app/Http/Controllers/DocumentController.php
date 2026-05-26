@@ -8,6 +8,8 @@ use App\Models\ProductStock;
 use App\Models\Stock;
 use App\Models\StockDocument;
 use App\Models\StockDocumentProduct;
+use App\Models\User;
+use App\Services\CsvExportService;
 use App\Services\StockDocumentService;
 use App\Support\FirmaContext;
 use Illuminate\Http\RedirectResponse;
@@ -18,23 +20,50 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
-    public function __construct(private StockDocumentService $documents)
+    public function __construct(
+        private StockDocumentService $documents,
+        private CsvExportService $csv,
+    )
     {
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $documents = StockDocument::query()
-            ->with(['sourceStock', 'destinationStock', 'operator', 'lines.product'])
-            ->where('firma_id', FirmaContext::firmaId())
-            ->where('deleted', false)
-            ->orderByDesc('date_add')
-            ->get();
+        $firmaId = FirmaContext::firmaId();
+        $documents = $this->filteredDocuments($request, $firmaId)->get();
+        $warehouses = $this->warehouses($firmaId);
+        $operators = $this->operators($firmaId);
 
-        return view('documents.index', compact('documents'));
+        return view('documents.index', compact('documents', 'warehouses', 'operators'));
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $documents = $this->filteredDocuments($request, FirmaContext::firmaId())->get();
+
+        return $this->csv->download('documents.csv', [
+            'ID',
+            'Type',
+            'Date',
+            'Source warehouse',
+            'Destination warehouse',
+            'Operator',
+            'Status',
+            'Comment',
+        ], $documents->map(fn (StockDocument $document) => [
+            $document->id,
+            $document->typeEnum()->label(),
+            $document->date_add?->format('Y-m-d H:i:s'),
+            $document->sourceStock?->name,
+            $document->destinationStock?->name,
+            $document->operator?->name,
+            $this->statusLabel($document),
+            $document->comment,
+        ]));
     }
 
     public function cancel(StockDocument $document): RedirectResponse
@@ -61,6 +90,13 @@ class DocumentController extends Controller
         ]));
     }
 
+    public function edit(StockDocument $document): View
+    {
+        $this->authorizeDraft($document);
+
+        return $this->formView($document);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $document = $this->persist($request, new StockDocument);
@@ -70,12 +106,41 @@ class DocumentController extends Controller
             ->with('success', 'Dokuments saglabāts kā melnraksts.');
     }
 
+    public function update(Request $request, StockDocument $document): RedirectResponse
+    {
+        $this->authorizeDraft($document);
+
+        $document = $this->persist($request, $document);
+
+        return redirect()
+            ->route('documents.show', $document)
+            ->with('success', 'Melnraksts saglabāts.');
+    }
+
+    public function destroy(StockDocument $document): RedirectResponse
+    {
+        $this->authorizeDraft($document);
+        $document->update(['deleted' => true]);
+
+        return redirect()
+            ->route('documents.index')
+            ->with('success', 'Melnraksts dzēsts.');
+    }
+
     public function show(StockDocument $document): View
     {
         $this->authorizeDocument($document);
         $document->load(['lines.product', 'sourceStock', 'destinationStock', 'operator']);
 
         return view('documents.show', compact('document'));
+    }
+
+    public function print(StockDocument $document): View
+    {
+        $this->authorizeDocument($document);
+        $document->load(['lines.product', 'sourceStock', 'destinationStock', 'operator']);
+
+        return view('documents.print', compact('document'));
     }
 
     public function post(StockDocument $document): RedirectResponse
@@ -134,7 +199,7 @@ class DocumentController extends Controller
             'destination_stock_id' => $data['destination_stock_id'] ?? null,
             'operator_id' => Auth::id(),
             'firma_id' => $firmaId,
-            'date_add' => now(),
+            'date_add' => $document->exists ? $document->date_add : now(),
             'posted' => false,
             'deleted' => false,
         ]);
@@ -228,12 +293,10 @@ class DocumentController extends Controller
 
     private function formView(StockDocument $document): View
     {
+        $document->loadMissing('lines');
+
         $products = Product::query()->where('deleted', false)->orderBy('name')->get();
-        $warehouses = Stock::query()
-            ->where('firma_id', FirmaContext::firmaId())
-            ->where('deleted', false)
-            ->orderBy('name')
-            ->get();
+        $warehouses = $this->warehouses(FirmaContext::firmaId());
 
         $catalogProducts = $products->map(fn (Product $p) => [
             'id' => $p->id,
@@ -247,12 +310,27 @@ class DocumentController extends Controller
             ->map(fn (Collection $rows) => $rows->values())
             ->all();
 
+        $lineRows = old('lines');
+        if (! is_array($lineRows)) {
+            $lineRows = $document->lines->map(fn (StockDocumentProduct $line) => [
+                'product_id' => $line->product_id,
+                'zone' => $line->zone,
+                'cnt' => (float) $line->cnt,
+                'price' => (float) $line->price,
+            ])->values()->all();
+        }
+
+        if ($lineRows === []) {
+            $lineRows = [['product_id' => '', 'zone' => '', 'cnt' => 1, 'price' => '']];
+        }
+
         return view('documents.create', compact(
             'document',
             'products',
             'warehouses',
             'catalogProducts',
             'stockProducts',
+            'lineRows',
         ));
     }
 
@@ -290,5 +368,62 @@ class DocumentController extends Controller
             (int) $document->firma_id === (int) FirmaContext::firmaId() && ! $document->deleted,
             404
         );
+    }
+
+    private function authorizeDraft(StockDocument $document): void
+    {
+        $this->authorizeDocument($document);
+
+        abort_if($document->posted || $document->cancelled, 403);
+    }
+
+    private function filteredDocuments(Request $request, int $firmaId): \Illuminate\Database\Eloquent\Builder
+    {
+        return StockDocument::query()
+            ->with(['sourceStock', 'destinationStock', 'operator', 'lines.product'])
+            ->where('firma_id', $firmaId)
+            ->where('deleted', false)
+            ->when($request->integer('type'), fn ($query, int $type) => $query->where('type', $type))
+            ->when($request->filled('status'), function ($query) use ($request): void {
+                match ($request->string('status')->toString()) {
+                    'draft' => $query->where('posted', false)->where('cancelled', false),
+                    'posted' => $query->where('posted', true)->where('cancelled', false),
+                    'cancelled' => $query->where('cancelled', true),
+                    default => null,
+                };
+            })
+            ->when($request->integer('source_stock_id'), fn ($query, int $id) => $query->where('source_stock_id', $id))
+            ->when($request->integer('destination_stock_id'), fn ($query, int $id) => $query->where('destination_stock_id', $id))
+            ->when($request->integer('operator_id'), fn ($query, int $id) => $query->where('operator_id', $id))
+            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('date_add', '>=', $request->input('date_from')))
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('date_add', '<=', $request->input('date_to')))
+            ->when($request->filled('q'), fn ($query) => $query->where('comment', 'like', '%'.$request->string('q')->toString().'%'))
+            ->orderByDesc('date_add');
+    }
+
+    private function warehouses(int $firmaId): Collection
+    {
+        return Stock::query()
+            ->where('firma_id', $firmaId)
+            ->where('deleted', false)
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function operators(int $firmaId): Collection
+    {
+        return User::query()
+            ->whereHas('firmas', fn ($query) => $query->where('firma.id', $firmaId))
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function statusLabel(StockDocument $document): string
+    {
+        if ($document->cancelled) {
+            return 'Atcelts';
+        }
+
+        return $document->posted ? 'Apstiprināts' : 'Melnraksts';
     }
 }

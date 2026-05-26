@@ -3,12 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Services\CsvExportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductController extends Controller
 {
+    public function __construct(private CsvExportService $csv)
+    {
+    }
+
     public function index(): View
     {
         $products = Product::query()
@@ -17,6 +23,28 @@ class ProductController extends Controller
             ->get();
 
         return view('products.index', compact('products'));
+    }
+
+    public function export(): StreamedResponse
+    {
+        $products = Product::query()
+            ->where('deleted', false)
+            ->orderBy('name')
+            ->get();
+
+        return $this->csv->download('products.csv', [
+            'ID',
+            'Name',
+            'Purchase price',
+            'Sale price',
+            'Unit',
+        ], $products->map(fn (Product $product) => [
+            $product->id,
+            $product->name,
+            (float) $product->purchase_price,
+            (float) $product->sale_price,
+            $product->unitLabel(),
+        ]));
     }
 
     public function create(): View

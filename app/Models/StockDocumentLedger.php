@@ -32,4 +32,19 @@ class StockDocumentLedger extends Model
     {
         return $this->belongsTo(StockDocument::class);
     }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function stock(): BelongsTo
+    {
+        return $this->belongsTo(Stock::class);
+    }
+
+    public function incomeDocument(): BelongsTo
+    {
+        return $this->belongsTo(StockDocument::class, 'income_id');
+    }
 }

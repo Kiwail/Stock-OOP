@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Jauns dokuments')
+@section('title', $document->exists ? 'Labot melnrakstu' : 'Jauns dokuments')
 
 @section('content')
     <div class="page-head">
         <div>
-            <h1>Jauns dokuments</h1>
+            <h1>{{ $document->exists ? 'Labot melnrakstu #'.$document->id : 'Jauns dokuments' }}</h1>
             <p>
                 Saņemšanai — preces no kataloga. Norakstīšanai, pārvietošanai un realizācijai — tikai preces,
                 kas jau ir izvēlētajā noliktavā. Daudzums — vesels skaitlis.
@@ -24,8 +24,11 @@
                 </ul>
             @endif
 
-            <form class="form-grid" method="POST" action="{{ route('documents.store') }}" id="doc-form">
+            <form class="form-grid" method="POST" action="{{ $document->exists ? route('documents.update', $document) : route('documents.store') }}" id="doc-form">
                 @csrf
+                @if ($document->exists)
+                    @method('PUT')
+                @endif
 
                 <label class="field">
                     Dokumenta tips
@@ -41,7 +44,7 @@
                     <select name="source_stock_id" id="source-stock">
                         <option value="">—</option>
                         @foreach ($warehouses as $warehouse)
-                            <option value="{{ $warehouse->id }}" @selected((int) old('source_stock_id') === $warehouse->id)>{{ $warehouse->name }}</option>
+                            <option value="{{ $warehouse->id }}" @selected((int) old('source_stock_id', $document->source_stock_id) === $warehouse->id)>{{ $warehouse->name }}</option>
                         @endforeach
                     </select>
                 </label>
@@ -51,14 +54,14 @@
                     <select name="destination_stock_id" id="dest-stock">
                         <option value="">—</option>
                         @foreach ($warehouses as $warehouse)
-                            <option value="{{ $warehouse->id }}" @selected((int) old('destination_stock_id') === $warehouse->id)>{{ $warehouse->name }}</option>
+                            <option value="{{ $warehouse->id }}" @selected((int) old('destination_stock_id', $document->destination_stock_id) === $warehouse->id)>{{ $warehouse->name }}</option>
                         @endforeach
                     </select>
                 </label>
 
                 <label class="field">
                     Komentārs
-                    <textarea name="comment">{{ old('comment') }}</textarea>
+                    <textarea name="comment">{{ old('comment', $document->comment) }}</textarea>
                 </label>
 
                 <p id="stock-hint" class="flash" style="margin:0;display:none;"></p>
@@ -66,30 +69,32 @@
                 <div>
                     <strong>Produktu rindas</strong>
                     <div id="lines" style="margin-top:12px;">
+                        @foreach ($lineRows as $index => $row)
                         <div class="line-row">
                             <label class="field">
                                 Produkts
-                                <select name="lines[0][product_id]" class="line-product" required>
+                                <select name="lines[{{ $index }}][product_id]" class="line-product" data-selected="{{ $row['product_id'] ?? '' }}" required>
                                     <option value="">— izvēlieties —</option>
                                 </select>
                             </label>
                             <label class="field zone-field">
                                 Zona
-                                <input type="text" name="lines[0][zone]" placeholder="A-12" pattern="[A-Za-z]-\d{2}">
+                                <input type="text" name="lines[{{ $index }}][zone]" placeholder="A-12" pattern="[A-Za-z]-\d{2}" value="{{ $row['zone'] ?? '' }}">
                             </label>
                             <label class="field">
                                 Daudzums
-                                <input type="number" step="1" min="1" name="lines[0][cnt]" class="line-cnt" value="1" required>
+                                <input type="number" step="1" min="1" name="lines[{{ $index }}][cnt]" class="line-cnt" value="{{ $row['cnt'] ?? 1 }}" required>
                             </label>
                             <label class="field">
                                 Cena / gab. (€)
-                                <input type="number" step="0.01" min="0" name="lines[0][price]" class="line-price" placeholder="no kataloga">
+                                <input type="number" step="0.01" min="0" name="lines[{{ $index }}][price]" class="line-price" placeholder="no kataloga" value="{{ $row['price'] ?? '' }}">
                             </label>
                             <label class="field">
                                 Kopā (€)
                                 <output class="line-total" style="min-height:42px;display:flex;align-items:center;font-weight:700;">0.00</output>
                             </label>
                         </div>
+                        @endforeach
                     </div>
                     <button class="button secondary" type="button" id="add-line" style="margin-top:10px;">Pievienot rindu</button>
                 </div>
@@ -108,7 +113,7 @@
         const sourceStock = document.getElementById('source-stock');
         const destStock = document.getElementById('dest-stock');
         const stockHint = document.getElementById('stock-hint');
-        let lineIndex = 1;
+        let lineIndex = {{ count($lineRows) }};
 
         function isIncome() {
             return Number(typeSelect.value) === 1;
@@ -186,7 +191,9 @@
             const list = productsForDocument();
             const rowProduct = list.find((p) => String(p.id) === String(productId));
 
-            priceInput.value = defaultUnitPrice(type, productId, rowProduct).toFixed(2);
+            if (!priceInput.value) {
+                priceInput.value = defaultUnitPrice(type, productId, rowProduct).toFixed(2);
+            }
             priceInput.placeholder = Number(type) === 4 ? 'realizācijas cena' : 'cena / gab.';
 
             if (rowProduct && cntInput) {
@@ -201,7 +208,7 @@
 
             document.querySelectorAll('.line-row').forEach((row) => {
                 const select = row.querySelector('.line-product');
-                const previous = select.value;
+                const previous = select.value || select.dataset.selected || '';
                 select.innerHTML = '<option value="">— izvēlieties —</option>';
 
                 list.forEach((product) => {
@@ -220,13 +227,20 @@
                 } else {
                     select.value = '';
                 }
+                delete select.dataset.selected;
 
                 fillLinePrice(row);
             });
         }
 
         function bindLine(row) {
-            row.querySelector('.line-product')?.addEventListener('change', () => fillLinePrice(row));
+            row.querySelector('.line-product')?.addEventListener('change', () => {
+                const price = row.querySelector('.line-price');
+                if (price) {
+                    price.value = '';
+                }
+                fillLinePrice(row);
+            });
             row.querySelector('.line-cnt')?.addEventListener('input', () => updateLineTotal(row));
             row.querySelector('.line-price')?.addEventListener('input', () => updateLineTotal(row));
             fillLinePrice(row);
@@ -264,6 +278,7 @@
                 }
                 if (el.classList.contains('line-product')) {
                     el.value = '';
+                    delete el.dataset.selected;
                 }
             });
             const total = clone.querySelector('.line-total');

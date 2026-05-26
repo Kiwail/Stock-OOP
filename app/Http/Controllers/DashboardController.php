@@ -19,7 +19,16 @@ class DashboardController extends Controller
         $mainStock = $this->overview->mainStock($firmaId);
         $balances = $this->overview->topBalances($firmaId, $mainStock?->id);
         $recentDocuments = $this->overview->recentDocuments($firmaId);
+        $latestPostedDocuments = $this->overview->latestPostedDocuments($firmaId);
+        $topProducts = $this->overview->topProductsByValue($firmaId);
 
-        return view('dashboard', compact('stats', 'mainStock', 'balances', 'recentDocuments'));
+        return view('dashboard', compact(
+            'stats',
+            'mainStock',
+            'balances',
+            'recentDocuments',
+            'latestPostedDocuments',
+            'topProducts',
+        ));
     }
 }
