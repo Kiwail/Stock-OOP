@@ -15,19 +15,24 @@ class StockDocumentService
 {
     public function post(StockDocument $document): void
     {
-        if ($document->posted) {
-            throw new RuntimeException('Dokuments jau ir apstiprināts.');
-        }
+        DB::transaction(function () use ($document): void {
+            $document = StockDocument::query()
+                ->whereKey($document->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($document->cancelled) {
-            throw new RuntimeException('Atceltu dokumentu nevar apstiprināt.');
-        }
+            if ($document->posted) {
+                throw new RuntimeException('Dokuments jau ir apstiprināts.');
+            }
 
-        $document->load('lines.product');
+            if ($document->cancelled) {
+                throw new RuntimeException('Atceltu dokumentu nevar apstiprināt.');
+            }
 
-        $type = DocumentType::from($document->type);
+            $document->load('lines.product');
 
-        DB::transaction(function () use ($document, $type): void {
+            $type = DocumentType::from($document->type);
+
             match ($type) {
                 DocumentType::Income => $this->postIncome($document),
                 DocumentType::Writeoff => $this->postWriteoff($document),
@@ -41,15 +46,20 @@ class StockDocumentService
 
     public function cancel(StockDocument $document): void
     {
-        if (! $document->posted) {
-            throw new RuntimeException('Melnrakstu nevar atcelt — dzēsiet vai labojiet dokumentu.');
-        }
-
-        if ($document->cancelled) {
-            throw new RuntimeException('Dokuments jau ir atcelts.');
-        }
-
         DB::transaction(function () use ($document): void {
+            $document = StockDocument::query()
+                ->whereKey($document->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $document->posted) {
+                throw new RuntimeException('Melnrakstu nevar atcelt — dzēsiet vai labojiet dokumentu.');
+            }
+
+            if ($document->cancelled) {
+                throw new RuntimeException('Dokuments jau ir atcelts.');
+            }
+
             $entries = StockDocumentLedger::query()
                 ->where('document_id', $document->id)
                 ->orderByDesc('id')

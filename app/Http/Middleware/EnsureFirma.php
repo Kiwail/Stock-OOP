@@ -13,7 +13,7 @@ class EnsureFirma
     {
         if (! FirmaContext::firma()) {
             return redirect()
-                ->route('dashboard')
+                ->to('/')
                 ->with('error', 'Jūsu konts nav piesaistīts uzņēmumam. Sazinieties ar administratoru.');
         }
 

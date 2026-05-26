@@ -18,6 +18,11 @@ class StockDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        if (Firma::query()->where('name', 'SIA Demo Noliktava')->exists()
+            || User::query()->whereIn('email', ['admin@instock.lv', 'operators@instock.lv'])->exists()) {
+            return;
+        }
+
         $firma = Firma::query()->create(['name' => 'SIA Demo Noliktava']);
 
         $admin = User::query()->create([

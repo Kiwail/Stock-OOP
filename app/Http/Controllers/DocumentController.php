@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use RuntimeException;
@@ -100,7 +101,10 @@ class DocumentController extends Controller
             'source_stock_id' => ['nullable', 'exists:stock,id'],
             'destination_stock_id' => ['nullable', 'exists:stock,id'],
             'lines' => ['required', 'array', 'min:1'],
-            'lines.*.product_id' => ['required', 'exists:product,id'],
+            'lines.*.product_id' => [
+                'required',
+                Rule::exists('product', 'id')->where(fn ($query) => $query->where('deleted', false)),
+            ],
             'lines.*.cnt' => ['required', 'integer', 'min:1'],
             'lines.*.price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.zone' => ['nullable', 'string', 'max:16', 'regex:/^[A-Za-z]-\d{2}$/'],
@@ -140,6 +144,7 @@ class DocumentController extends Controller
 
         $products = Product::query()
             ->whereIn('id', collect($data['lines'])->pluck('product_id'))
+            ->where('deleted', false)
             ->get()
             ->keyBy('id');
 
@@ -172,19 +177,25 @@ class DocumentController extends Controller
         $stockId = (int) $data['source_stock_id'];
         $available = $this->stockProductMap($firmaId)->get($stockId, collect())->keyBy('id');
 
-        foreach ($data['lines'] as $index => $line) {
-            $productId = (int) $line['product_id'];
+        $requested = collect($data['lines'])
+            ->groupBy(fn (array $line) => (int) $line['product_id'])
+            ->map(fn (Collection $lines) => [
+                'qty' => $lines->sum(fn (array $line) => (int) $line['cnt']),
+                'index' => $lines->keys()->first(),
+            ]);
+
+        foreach ($requested as $productId => $request) {
             $row = $available->get($productId);
 
             if (! $row) {
                 throw ValidationException::withMessages([
-                    "lines.{$index}.product_id" => 'Šī prece nav pieejama izvēlētajā noliktavā.',
+                    "lines.{$request['index']}.product_id" => 'Šī prece nav pieejama izvēlētajā noliktavā.',
                 ]);
             }
 
-            if ((int) $line['cnt'] > (int) $row['qty']) {
+            if ((int) $request['qty'] > (int) $row['qty']) {
                 throw ValidationException::withMessages([
-                    "lines.{$index}.cnt" => "Maksimāli pieejams: {$row['qty']} {$row['unit']}.",
+                    "lines.{$request['index']}.cnt" => "Maksimāli pieejams: {$row['qty']} {$row['unit']}.",
                 ]);
             }
         }
@@ -249,6 +260,7 @@ class DocumentController extends Controller
     {
         return ProductStock::query()
             ->with('product')
+            ->whereHas('product', fn ($query) => $query->where('deleted', false))
             ->where('firma_id', $firmaId)
             ->where('cnt', '>=', 1)
             ->get()
