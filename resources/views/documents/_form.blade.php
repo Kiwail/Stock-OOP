@@ -6,7 +6,10 @@
 
     <label class="field">
         Тип документа
-        <select name="type" id="doc-type" required>
+        @if (! $document->exists)
+            <input type="hidden" name="type" value="{{ old('type', $document->type) }}">
+        @endif
+        <select name="{{ $document->exists ? 'type' : '' }}" id="doc-type" required @disabled(! $document->exists)>
             @foreach (\App\Enums\DocumentType::cases() as $type)
                 <option value="{{ $type->value }}" @selected((int) old('type', $document->type) === $type->value)>{{ $type->label() }}</option>
             @endforeach

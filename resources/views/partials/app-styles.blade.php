@@ -239,6 +239,39 @@
     .modal-body { padding: 18px; overflow: auto; }
     .modal .form-grid { max-width: none; }
 
+    .document-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .document-detail-grid > div,
+    .document-detail-comment {
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .03);
+    }
+
+    .document-detail-grid span,
+    .document-detail-comment span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .document-detail-grid strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 14px;
+    }
+
+    .document-detail-comment { margin-bottom: 16px; }
+    .document-detail-comment p { margin: 6px 0 0; }
+    .document-detail-actions { margin-top: 16px; }
+
     .card-head {
         padding: 16px 18px;
         border-bottom: 1px solid var(--line);
@@ -277,6 +310,8 @@
 
     .table th { color: var(--muted); font-weight: 600; font-size: 12px; }
     .table tr:last-child td { border-bottom: 0; }
+    .table tr.clickable-row { cursor: pointer; }
+    .table tr.clickable-row:hover td { background: rgba(255, 255, 255, .03); }
     .table small { display: block; color: var(--muted); margin-top: 3px; font-weight: 500; }
 
     .badge {
@@ -503,6 +538,7 @@
     @media (max-width: 900px) {
         .workspace-grid,
         .stats,
+        .document-detail-grid,
         .doc-cards,
         .line-row { grid-template-columns: 1fr; }
         .app-topbar { flex-direction: column; align-items: stretch; }

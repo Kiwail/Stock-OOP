@@ -111,7 +111,7 @@
             </thead>
             <tbody>
                 @forelse ($documents as $document)
-                    <tr>
+                    <tr class="clickable-row" data-modal-target="document-detail-{{ $document->id }}">
                         <td>#{{ $document->id }}</td>
                         <td>{{ $document->typeEnum()->label() }}</td>
                         <td>{{ $document->date_add?->format('d.m.Y H:i') }}</td>
@@ -134,7 +134,7 @@
                             @endif
                         </td>
                         <td class="actions">
-                            <a class="button secondary" href="{{ route('documents.show', $document) }}">Skatīt</a>
+                            <button class="button secondary open-detail-modal" type="button" data-modal-target="document-detail-{{ $document->id }}">Skatīt</button>
                             @if (! $document->posted && ! $document->cancelled)
                                 <a class="button secondary" href="{{ route('documents.edit', $document) }}">Labot</a>
                             @endif
@@ -146,6 +146,84 @@
             </tbody>
         </table>
     </div>
+
+    @foreach ($documents as $document)
+        <dialog class="modal" id="document-detail-{{ $document->id }}">
+            <div class="modal-head">
+                <div>
+                    <strong>{{ $document->typeEnum()->label() }} #{{ $document->id }}</strong>
+                    <span>{{ $document->date_add?->format('d.m.Y H:i') }} · {{ $document->operator?->name ?? '-' }}</span>
+                </div>
+                <button class="button secondary close-detail-modal" type="button">Закрыть</button>
+            </div>
+            <div class="modal-body">
+                <div class="document-detail-grid">
+                    <div>
+                        <span>Статус</span>
+                        @if ($document->cancelled)
+                            <strong><span class="badge cancelled">Atcelts</span></strong>
+                        @else
+                            <strong>
+                                <span @class(['badge', 'posted' => $document->posted, 'draft' => ! $document->posted])>
+                                    {{ $document->posted ? 'Apstiprināts' : 'Melnraksts' }}
+                                </span>
+                            </strong>
+                        @endif
+                    </div>
+                    <div>
+                        <span>Оператор</span>
+                        <strong>{{ $document->operator?->name ?? '-' }}</strong>
+                    </div>
+                    <div>
+                        <span>Склад источник</span>
+                        <strong>{{ $document->sourceStock?->name ?? '-' }}</strong>
+                    </div>
+                    <div>
+                        <span>Склад получатель</span>
+                        <strong>{{ $document->destinationStock?->name ?? '-' }}</strong>
+                    </div>
+                </div>
+
+                @if ($document->comment)
+                    <div class="document-detail-comment">
+                        <span>Комментарий</span>
+                        <p>{{ $document->comment }}</p>
+                    </div>
+                @endif
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Товар</th>
+                            <th>Зона</th>
+                            <th>Количество</th>
+                            <th>Цена</th>
+                            <th>Итого</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($document->lines as $line)
+                            <tr>
+                                <td>{{ $line->product?->name }}</td>
+                                <td>{{ $line->zone ? 'Zona '.$line->zone : '-' }}</td>
+                                <td>{{ (int) $line->cnt }} {{ $line->product?->unitLabel() }}</td>
+                                <td>{{ number_format($line->price, 2) }}</td>
+                                <td>{{ number_format($line->price * $line->cnt, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+                <div class="actions document-detail-actions">
+                    <a class="button secondary" href="{{ route('documents.print', $document) }}">Печать</a>
+                    @if (! $document->posted && ! $document->cancelled)
+                        <a class="button secondary" href="{{ route('documents.edit', $document) }}">Labot</a>
+                    @endif
+                    <a class="button secondary" href="{{ route('documents.show', $document) }}">Открыть страницу</a>
+                </div>
+            </div>
+        </dialog>
+    @endforeach
 
     <dialog class="modal" id="document-modal" data-open-on-load="{{ $errors->any() ? 'true' : 'false' }}">
         <div class="modal-head">
@@ -179,6 +257,33 @@
             if (event.target === documentModal) {
                 documentModal.close();
             }
+        });
+
+        function openDetailModal(id) {
+            document.getElementById(id)?.showModal();
+        }
+
+        document.querySelectorAll('.clickable-row').forEach((row) => {
+            row.addEventListener('click', (event) => {
+                if (event.target.closest('a, button, form')) {
+                    return;
+                }
+
+                openDetailModal(row.dataset.modalTarget);
+            });
+        });
+
+        document.querySelectorAll('.open-detail-modal').forEach((button) => {
+            button.addEventListener('click', () => openDetailModal(button.dataset.modalTarget));
+        });
+
+        document.querySelectorAll('[id^="document-detail-"]').forEach((modal) => {
+            modal.querySelector('.close-detail-modal')?.addEventListener('click', () => modal.close());
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.close();
+                }
+            });
         });
     </script>
 @endsection
