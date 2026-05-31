@@ -173,12 +173,71 @@
     .page-head h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); }
     .page-head p { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
 
+    .subtabs {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+
+    .subtab {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        color: var(--muted);
+        background: rgba(20, 26, 35, .72);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .subtab:hover,
+    .subtab.active {
+        color: #15100b;
+        border-color: rgba(255, 138, 61, .72);
+        background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    }
+
     .card {
         border: 1px solid var(--line);
         border-radius: 10px;
         background: rgba(14, 19, 27, .88);
         overflow: hidden;
     }
+
+    .modal {
+        width: min(1040px, calc(100% - 24px));
+        max-height: min(88vh, 900px);
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        color: var(--text);
+        background: var(--panel);
+        box-shadow: 0 24px 90px rgba(0, 0, 0, .58);
+    }
+
+    .modal::backdrop {
+        background: rgba(3, 6, 10, .72);
+    }
+
+    .modal-head {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        background: rgba(255, 255, 255, .04);
+    }
+
+    .modal-head strong { display: block; font-size: 16px; }
+    .modal-head span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; }
+    .modal-body { padding: 18px; overflow: auto; }
+    .modal .form-grid { max-width: none; }
 
     .card-head {
         padding: 16px 18px;
@@ -235,7 +294,17 @@
     .badge.posted { color: #11301f; background: var(--green); }
     .badge.draft { color: #2d2408; background: var(--yellow); }
 
-    .form-grid { display: grid; gap: 14px; max-width: 720px; }
+    .form-grid { display: grid; gap: 14px; max-width: 860px; }
+
+    .filter-panel summary {
+        width: max-content;
+        list-style: none;
+    }
+
+    .filter-panel summary::-webkit-details-marker { display: none; }
+
+    .filter-panel .filter-form { margin-top: 16px; }
+
     .field { display: grid; gap: 7px; font-size: 14px; font-weight: 600; }
     .field input,
     .field select,
@@ -253,11 +322,13 @@
 
     .line-row {
         display: grid;
-        grid-template-columns: 1.6fr 0.9fr 0.7fr 0.9fr 0.7fr;
+        grid-template-columns: 1.6fr 0.9fr 0.7fr 0.9fr 0.7fr auto;
         gap: 10px;
         align-items: end;
         margin-bottom: 10px;
     }
+
+    .line-row .remove-line { min-height: 42px; }
 
     .line-total {
         color: #ffd2b5;

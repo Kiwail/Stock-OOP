@@ -3,29 +3,44 @@
 @section('title', 'Dokumenti')
 
 @section('content')
+    @php
+        $documentTabs = [
+            \App\Enums\DocumentType::Income->value => 'Поступления',
+            \App\Enums\DocumentType::Writeoff->value => 'Списания',
+            \App\Enums\DocumentType::Transfer->value => 'Перемещения',
+            \App\Enums\DocumentType::Sale->value => 'Продажа',
+        ];
+        $activeType = (int) request('type', \App\Enums\DocumentType::Income->value);
+    @endphp
+
     <div class="page-head">
         <div>
             <h1>Dokumenti</h1>
             <p>Saņemšana, norakstīšana, pārvietošana un realizācija</p>
         </div>
         <div class="actions">
-            <a class="button secondary" href="{{ route('documents.export', request()->query()) }}">CSV</a>
-            <a class="button" href="{{ route('documents.create') }}">Jauns dokuments</a>
+            <a class="button secondary" href="{{ route('documents.export', array_merge(request()->query(), ['type' => $activeType])) }}">CSV</a>
+            <button class="button" type="button" id="open-document-modal">Новый документ</button>
         </div>
     </div>
 
+    <nav class="subtabs" aria-label="Dokumentu veidi">
+        @foreach ($documentTabs as $typeValue => $typeLabel)
+            <a
+                href="{{ route('documents.index', array_merge(request()->except('page'), ['type' => $typeValue])) }}"
+                @class(['subtab', 'active' => $activeType === $typeValue])
+            >
+                {{ $typeLabel }}
+            </a>
+        @endforeach
+    </nav>
+
     <div class="card">
         <div class="card-body">
-            <form method="GET" action="{{ route('documents.index') }}" class="form-grid">
-                <label class="field">
-                    Tips
-                    <select name="type">
-                        <option value="">Visi</option>
-                        @foreach (\App\Enums\DocumentType::cases() as $type)
-                            <option value="{{ $type->value }}" @selected((int) request('type') === $type->value)>{{ $type->label() }}</option>
-                        @endforeach
-                    </select>
-                </label>
+            <details class="filter-panel">
+                <summary class="button secondary">Фильтровать</summary>
+                <form method="GET" action="{{ route('documents.index') }}" class="form-grid filter-form">
+                    <input type="hidden" name="type" value="{{ $activeType }}">
                 <label class="field">
                     Statuss
                     <select name="status">
@@ -75,10 +90,11 @@
                     <input type="search" name="q" value="{{ request('q') }}" placeholder="Meklēt komentārā">
                 </label>
                 <div class="actions">
-                    <button class="button" type="submit">Filtrēt</button>
-                    <a class="button secondary" href="{{ route('documents.index') }}">Notīrīt</a>
+                    <button class="button" type="submit">Применить</button>
+                    <a class="button secondary" href="{{ route('documents.index', ['type' => $activeType]) }}">Notīrīt</a>
                 </div>
-            </form>
+                </form>
+            </details>
         </div>
 
         <table class="table">
@@ -130,4 +146,39 @@
             </tbody>
         </table>
     </div>
+
+    <dialog class="modal" id="document-modal" data-open-on-load="{{ $errors->any() ? 'true' : 'false' }}">
+        <div class="modal-head">
+            <div>
+                <strong>Новый документ</strong>
+                <span>Заполните тип, склад, товары и сохраните документ как черновик.</span>
+            </div>
+            <button class="button secondary" type="button" id="close-document-modal">Закрыть</button>
+        </div>
+        <div class="modal-body">
+            @if ($errors->any())
+                <ul class="flash err" style="list-style-position:inside;margin-bottom:16px;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            @endif
+
+            @include('documents._form', ['document' => $createDocument])
+        </div>
+    </dialog>
+
+    <script>
+        const documentModal = document.getElementById('document-modal');
+        if (documentModal?.dataset.openOnLoad === 'true') {
+            documentModal.showModal();
+        }
+        document.getElementById('open-document-modal')?.addEventListener('click', () => documentModal.showModal());
+        document.getElementById('close-document-modal')?.addEventListener('click', () => documentModal.close());
+        documentModal?.addEventListener('click', (event) => {
+            if (event.target === documentModal) {
+                documentModal.close();
+            }
+        });
+    </script>
 @endsection

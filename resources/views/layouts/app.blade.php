@@ -26,7 +26,6 @@
                 <a href="{{ route('balances.index') }}" @class(['nav-link', 'active' => request()->routeIs('balances.*')])>Atlikumi</a>
                 <a href="{{ route('movements.index') }}" @class(['nav-link', 'active' => request()->routeIs('movements.*')])>Kustības</a>
                 <a href="{{ route('documents.index') }}" @class(['nav-link', 'active' => request()->routeIs('documents.index', 'documents.show')])>Dokumenti</a>
-                <a href="{{ route('documents.create') }}" @class(['nav-link', 'nav-link-accent', 'active' => request()->routeIs('documents.create')])>Jauns dokuments</a>
             </nav>
 
             <div class="app-user">

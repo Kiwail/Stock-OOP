@@ -34,11 +34,28 @@ class DocumentController extends Controller
     public function index(Request $request): View
     {
         $firmaId = FirmaContext::firmaId();
+        $request->merge([
+            'type' => $request->integer('type') ?: DocumentType::Income->value,
+        ]);
+
+        $createDocument = new StockDocument([
+            'type' => $request->integer('type'),
+            'date_add' => now(),
+        ]);
         $documents = $this->filteredDocuments($request, $firmaId)->get();
         $warehouses = $this->warehouses($firmaId);
         $operators = $this->operators($firmaId);
+        $formData = $this->formData($createDocument);
 
-        return view('documents.index', compact('documents', 'warehouses', 'operators'));
+        return view('documents.index', array_merge(
+            compact('documents', 'warehouses', 'operators', 'createDocument'),
+            [
+                'catalogProducts' => $formData['catalogProducts'],
+                'stockProducts' => $formData['stockProducts'],
+                'lineRows' => $formData['lineRows'],
+                'currentOperator' => $formData['currentOperator'],
+            ],
+        ));
     }
 
     public function export(Request $request): StreamedResponse
@@ -293,8 +310,14 @@ class DocumentController extends Controller
 
     private function formView(StockDocument $document): View
     {
+        return view('documents.create', $this->formData($document));
+    }
+
+    private function formData(StockDocument $document): array
+    {
         $document->loadMissing('lines');
 
+        $currentOperator = Auth::user();
         $products = Product::query()->where('deleted', false)->orderBy('name')->get();
         $warehouses = $this->warehouses(FirmaContext::firmaId());
 
@@ -324,14 +347,15 @@ class DocumentController extends Controller
             $lineRows = [['product_id' => '', 'zone' => '', 'cnt' => 1, 'price' => '']];
         }
 
-        return view('documents.create', compact(
+        return compact(
             'document',
             'products',
             'warehouses',
             'catalogProducts',
             'stockProducts',
             'lineRows',
-        ));
+            'currentOperator',
+        );
     }
 
     private function stockProductMap(int $firmaId): Collection
