@@ -371,6 +371,50 @@
 
     .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
+    .admin-grid {
+        display: grid;
+        grid-template-columns: minmax(320px, .9fr) minmax(0, 1.1fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .admin-actions {
+        display: grid;
+        gap: 10px;
+    }
+
+    .admin-tile {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .03);
+    }
+
+    .admin-tile:hover {
+        border-color: rgba(255, 138, 61, .5);
+        background: rgba(255, 138, 61, .08);
+    }
+
+    .admin-tile strong { display: block; font-size: 14px; }
+    .admin-tile span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+    .role-form {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .role-form select {
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        background: var(--panel);
+        font: inherit;
+    }
+
     .workspace-grid {
         display: grid;
         grid-template-columns: minmax(0, .85fr) minmax(420px, 1.15fr);
@@ -537,6 +581,7 @@
 
     @media (max-width: 900px) {
         .workspace-grid,
+        .admin-grid,
         .stats,
         .document-detail-grid,
         .doc-cards,

@@ -33,7 +33,7 @@ class AuthController extends Controller
         $user = User::create($attributes);
 
         $firma = Firma::query()->create(['name' => $user->name.' SIA']);
-        $firma->users()->attach($user->id, ['role' => UserRole::Admin->value]);
+        $firma->users()->attach($user->id, ['role' => UserRole::Operator->value]);
         session(['firma_id' => $firma->id]);
 
         Auth::login($user);

@@ -49,6 +49,9 @@
             @if ($document->destinationStock)
                 <p><strong>Mērķa noliktava:</strong> {{ $document->destinationStock->name }}</p>
             @endif
+            @if ($document->recipientFirma)
+                <p><strong>Saņēmēja uzņēmums:</strong> {{ $document->recipientFirma->name }}</p>
+            @endif
             @if ($document->comment)
                 <p><strong>Komentārs:</strong> {{ $document->comment }}</p>
             @endif

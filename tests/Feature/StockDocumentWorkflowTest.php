@@ -130,6 +130,7 @@ class StockDocumentWorkflowTest extends TestCase
         $this->post('/documents', [
             'type' => DocumentType::Sale->value,
             'source_stock_id' => $stock->id,
+            'recipient_firma_id' => $firma->id,
             'comment' => 'Test sale',
             'lines' => [
                 ['product_id' => $product->id, 'cnt' => 3],
@@ -141,6 +142,7 @@ class StockDocumentWorkflowTest extends TestCase
         $this->post("/documents/{$document->id}/post")->assertRedirect("/documents/{$document->id}");
 
         $this->assertSame($before - 3.0, $this->stockQuantity($product, $stock, $firma));
+        $this->assertSame($firma->id, $document->fresh()->recipient_firma_id);
     }
 
     public function test_operator_cannot_access_admin_product_or_warehouse_actions(): void

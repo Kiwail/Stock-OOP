@@ -6,9 +6,9 @@
     <div class="page-head">
         <div>
             <h1>{{ $document->exists ? 'Labot melnrakstu #'.$document->id : 'Jauns dokuments' }}</h1>
-            <p>Документ сохраняется как черновик. После проверки его можно подтвердить.</p>
+            <p>Dokuments tiek saglabāts kā melnraksts. Pēc pārbaudes to var apstiprināt.</p>
         </div>
-        <a class="button secondary" href="{{ route('documents.index') }}">Назад</a>
+        <a class="button secondary" href="{{ route('documents.index') }}">Atpakaļ</a>
     </div>
 
     <div class="card">

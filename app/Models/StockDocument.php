@@ -20,6 +20,7 @@ class StockDocument extends Model
         'source_stock_id',
         'destination_stock_id',
         'firma_id',
+        'recipient_firma_id',
         'posted',
         'cancelled',
         'deleted',
@@ -39,6 +40,11 @@ class StockDocument extends Model
     public function firma(): BelongsTo
     {
         return $this->belongsTo(Firma::class);
+    }
+
+    public function recipientFirma(): BelongsTo
+    {
+        return $this->belongsTo(Firma::class, 'recipient_firma_id');
     }
 
     public function operator(): BelongsTo

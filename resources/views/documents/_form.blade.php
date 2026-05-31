@@ -5,7 +5,7 @@
     @endif
 
     <label class="field">
-        Тип документа
+        Dokumenta tips
         @if (! $document->exists)
             <input type="hidden" name="type" value="{{ old('type', $document->type) }}">
         @endif
@@ -17,12 +17,12 @@
     </label>
 
     <label class="field">
-        Оператор
+        Operators
         <input type="text" value="{{ $currentOperator?->name }} ({{ $currentOperator?->email }})" disabled>
     </label>
 
     <label class="field" id="source-wrap">
-        Склад источник
+        Avota noliktava
         <select name="source_stock_id" id="source-stock">
             <option value="">-</option>
             @foreach ($warehouses as $warehouse)
@@ -32,7 +32,7 @@
     </label>
 
     <label class="field" id="dest-wrap">
-        Склад получатель
+        Mērķa noliktava
         <select name="destination_stock_id" id="dest-stock">
             <option value="">-</option>
             @foreach ($warehouses as $warehouse)
@@ -41,48 +41,58 @@
         </select>
     </label>
 
+    <label class="field" id="recipient-firma-wrap">
+        Saņēmēja uzņēmums
+        <select name="recipient_firma_id" id="recipient-firma">
+            <option value="">- izvēlieties -</option>
+            @foreach ($recipientFirms as $firma)
+                <option value="{{ $firma->id }}" @selected((int) old('recipient_firma_id', $document->recipient_firma_id) === $firma->id)>{{ $firma->name }}</option>
+            @endforeach
+        </select>
+    </label>
+
     <label class="field">
-        Комментарий
+        Komentārs
         <textarea name="comment">{{ old('comment', $document->comment) }}</textarea>
     </label>
 
     <p id="stock-hint" class="flash" style="margin:0;display:none;"></p>
 
     <div>
-        <strong>Товары документа</strong>
+        <strong>Dokumenta preces</strong>
         <div id="lines" style="margin-top:12px;">
             @foreach ($lineRows as $index => $row)
                 <div class="line-row">
                     <label class="field">
-                        Товар
+                        Prece
                         <select name="lines[{{ $index }}][product_id]" class="line-product" data-selected="{{ $row['product_id'] ?? '' }}" required>
-                            <option value="">- выберите -</option>
+                            <option value="">- izvēlieties -</option>
                         </select>
                     </label>
                     <label class="field zone-field">
-                        Зона
+                        Zona
                         <input type="text" name="lines[{{ $index }}][zone]" placeholder="A-12" pattern="[A-Za-z]-\d{2}" value="{{ $row['zone'] ?? '' }}">
                     </label>
                     <label class="field">
-                        Количество
+                        Daudzums
                         <input type="number" step="1" min="1" name="lines[{{ $index }}][cnt]" class="line-cnt" value="{{ $row['cnt'] ?? 1 }}" required>
                     </label>
                     <label class="field">
-                        Цена / шт.
-                        <input type="number" step="0.01" min="0" name="lines[{{ $index }}][price]" class="line-price" placeholder="из каталога" value="{{ $row['price'] ?? '' }}">
+                        Cena / gab.
+                        <input type="number" step="0.01" min="0" name="lines[{{ $index }}][price]" class="line-price" placeholder="no kataloga" value="{{ $row['price'] ?? '' }}">
                     </label>
                     <label class="field">
-                        Итого
+                        Kopā
                         <output class="line-total" style="min-height:42px;display:flex;align-items:center;font-weight:700;">0.00</output>
                     </label>
-                    <button class="button secondary remove-line" type="button">Удалить</button>
+                    <button class="button secondary remove-line" type="button">Dzēst</button>
                 </div>
             @endforeach
         </div>
-        <button class="button secondary" type="button" id="add-line" style="margin-top:10px;">Добавить строку</button>
+        <button class="button secondary" type="button" id="add-line" style="margin-top:10px;">Pievienot rindu</button>
     </div>
 
-    <button class="button" type="submit">Сохранить черновик</button>
+    <button class="button" type="submit">Saglabāt melnrakstu</button>
 </form>
 
 <script>
@@ -93,6 +103,8 @@
     const destWrap = document.getElementById('dest-wrap');
     const sourceStock = document.getElementById('source-stock');
     const destStock = document.getElementById('dest-stock');
+    const recipientFirmaWrap = document.getElementById('recipient-firma-wrap');
+    const recipientFirma = document.getElementById('recipient-firma');
     const stockHint = document.getElementById('stock-hint');
     let lineIndex = {{ count($lineRows) }};
 
@@ -120,10 +132,13 @@
     function syncStockFields() {
         const type = Number(typeSelect.value);
         const income = type === 1;
+        const sale = type === 4;
         sourceWrap.style.display = [2, 3, 4].includes(type) ? 'grid' : 'none';
         destWrap.style.display = [1, 3].includes(type) ? 'grid' : 'none';
+        recipientFirmaWrap.style.display = sale ? 'grid' : 'none';
         sourceStock.required = [2, 3, 4].includes(type);
         destStock.required = [1, 3].includes(type);
+        recipientFirma.required = sale;
 
         document.querySelectorAll('.zone-field').forEach((field) => {
             field.style.display = income ? 'grid' : 'none';
@@ -133,10 +148,10 @@
 
         if (needsSourceStock() && !sourceStock.value) {
             stockHint.style.display = 'block';
-            stockHint.textContent = 'Сначала выберите склад источник, затем появятся доступные товары.';
+            stockHint.textContent = 'Vispirms izvēlieties avota noliktavu, tad parādīsies pieejamās preces.';
         } else if (!income && productsForDocument().length === 0) {
             stockHint.style.display = 'block';
-            stockHint.textContent = 'На выбранном складе нет остатков.';
+            stockHint.textContent = 'Izvēlētajā noliktavā nav atlikumu.';
         } else {
             stockHint.style.display = 'none';
         }
@@ -189,14 +204,14 @@
         document.querySelectorAll('.line-row').forEach((row) => {
             const select = row.querySelector('.line-product');
             const previous = select.value || select.dataset.selected || '';
-            select.innerHTML = '<option value="">- выберите -</option>';
+            select.innerHTML = '<option value="">- izvēlieties -</option>';
 
             list.forEach((product) => {
                 const option = document.createElement('option');
                 option.value = product.id;
                 option.textContent = isIncome()
                     ? product.name
-                    : `${product.name} (доступно: ${product.qty} ${product.unit})`;
+                    : `${product.name} (pieejams: ${product.qty} ${product.unit})`;
                 option.dataset.qty = product.qty;
                 option.dataset.price = product.price ?? '';
                 select.appendChild(option);

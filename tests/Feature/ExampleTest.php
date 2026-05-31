@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\DocumentType;
+use App\Enums\UserRole;
 use App\Models\Firma;
 use App\Models\Product;
 use App\Models\ProductStock;
@@ -35,6 +36,57 @@ class ExampleTest extends TestCase
         $this->actingAs($user)
             ->get('/dashboard')
             ->assertRedirect('/');
+    }
+
+    public function test_registered_user_is_operator_not_admin(): void
+    {
+        $this->post('/register', [
+            'name' => 'New Operator',
+            'email' => 'new-operator@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertRedirect('/dashboard');
+
+        $user = User::query()->where('email', 'new-operator@example.com')->firstOrFail();
+        $firma = $user->firmas()->firstOrFail();
+
+        $this->assertSame(UserRole::Operator->value, $firma->pivot->role);
+    }
+
+    public function test_admin_page_is_available_only_to_admins(): void
+    {
+        $firma = Firma::query()->where('name', 'SIA Demo Noliktava')->firstOrFail();
+        $admin = User::query()->where('email', 'admin@instock.lv')->firstOrFail();
+        $operator = User::query()->where('email', 'operators@instock.lv')->firstOrFail();
+
+        $this->actingAs($operator)
+            ->withSession(['firma_id' => $firma->id])
+            ->get('/admin')
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->withSession(['firma_id' => $firma->id])
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('Administrēšana');
+    }
+
+    public function test_admin_can_update_user_role(): void
+    {
+        $firma = Firma::query()->where('name', 'SIA Demo Noliktava')->firstOrFail();
+        $admin = User::query()->where('email', 'admin@instock.lv')->firstOrFail();
+        $operator = User::query()->where('email', 'operators@instock.lv')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->withSession(['firma_id' => $firma->id])
+            ->patch("/admin/users/{$operator->id}/role", [
+                'role' => UserRole::Admin->value,
+            ])
+            ->assertRedirect();
+
+        $role = $operator->firmas()->where('firma.id', $firma->id)->firstOrFail()->pivot->role;
+
+        $this->assertSame(UserRole::Admin->value, $role);
     }
 
     public function test_document_validation_sums_duplicate_product_lines(): void

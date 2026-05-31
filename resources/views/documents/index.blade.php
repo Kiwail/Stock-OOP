@@ -5,10 +5,10 @@
 @section('content')
     @php
         $documentTabs = [
-            \App\Enums\DocumentType::Income->value => 'Поступления',
-            \App\Enums\DocumentType::Writeoff->value => 'Списания',
-            \App\Enums\DocumentType::Transfer->value => 'Перемещения',
-            \App\Enums\DocumentType::Sale->value => 'Продажа',
+            \App\Enums\DocumentType::Income->value => 'Saņemšana',
+            \App\Enums\DocumentType::Writeoff->value => 'Norakstīšana',
+            \App\Enums\DocumentType::Transfer->value => 'Pārvietošana',
+            \App\Enums\DocumentType::Sale->value => 'Realizācija',
         ];
         $activeType = (int) request('type', \App\Enums\DocumentType::Income->value);
     @endphp
@@ -20,7 +20,7 @@
         </div>
         <div class="actions">
             <a class="button secondary" href="{{ route('documents.export', array_merge(request()->query(), ['type' => $activeType])) }}">CSV</a>
-            <button class="button" type="button" id="open-document-modal">Новый документ</button>
+            <button class="button" type="button" id="open-document-modal">Jauns dokuments</button>
         </div>
     </div>
 
@@ -38,7 +38,7 @@
     <div class="card">
         <div class="card-body">
             <details class="filter-panel">
-                <summary class="button secondary">Фильтровать</summary>
+                <summary class="button secondary">Filtrēt</summary>
                 <form method="GET" action="{{ route('documents.index') }}" class="form-grid filter-form">
                     <input type="hidden" name="type" value="{{ $activeType }}">
                 <label class="field">
@@ -90,7 +90,7 @@
                     <input type="search" name="q" value="{{ request('q') }}" placeholder="Meklēt komentārā">
                 </label>
                 <div class="actions">
-                    <button class="button" type="submit">Применить</button>
+                    <button class="button" type="submit">Pielietot</button>
                     <a class="button secondary" href="{{ route('documents.index', ['type' => $activeType]) }}">Notīrīt</a>
                 </div>
                 </form>
@@ -121,6 +121,9 @@
                             @endif
                             @if ($document->destinationStock)
                                 <small>Mērķis: {{ $document->destinationStock->name }}</small>
+                            @endif
+                            @if ($document->recipientFirma)
+                                <small>Uzņēmums: {{ $document->recipientFirma->name }}</small>
                             @endif
                         </td>
                         <td>{{ $document->operator?->name ?? '—' }}</td>
@@ -154,12 +157,12 @@
                     <strong>{{ $document->typeEnum()->label() }} #{{ $document->id }}</strong>
                     <span>{{ $document->date_add?->format('d.m.Y H:i') }} · {{ $document->operator?->name ?? '-' }}</span>
                 </div>
-                <button class="button secondary close-detail-modal" type="button">Закрыть</button>
+                <button class="button secondary close-detail-modal" type="button">Aizvērt</button>
             </div>
             <div class="modal-body">
                 <div class="document-detail-grid">
                     <div>
-                        <span>Статус</span>
+                        <span>Statuss</span>
                         @if ($document->cancelled)
                             <strong><span class="badge cancelled">Atcelts</span></strong>
                         @else
@@ -171,22 +174,26 @@
                         @endif
                     </div>
                     <div>
-                        <span>Оператор</span>
+                        <span>Operators</span>
                         <strong>{{ $document->operator?->name ?? '-' }}</strong>
                     </div>
                     <div>
-                        <span>Склад источник</span>
+                        <span>Avota noliktava</span>
                         <strong>{{ $document->sourceStock?->name ?? '-' }}</strong>
                     </div>
                     <div>
-                        <span>Склад получатель</span>
+                        <span>Mērķa noliktava</span>
                         <strong>{{ $document->destinationStock?->name ?? '-' }}</strong>
+                    </div>
+                    <div>
+                        <span>Saņēmēja uzņēmums</span>
+                        <strong>{{ $document->recipientFirma?->name ?? '-' }}</strong>
                     </div>
                 </div>
 
                 @if ($document->comment)
                     <div class="document-detail-comment">
-                        <span>Комментарий</span>
+                        <span>Komentārs</span>
                         <p>{{ $document->comment }}</p>
                     </div>
                 @endif
@@ -194,11 +201,11 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Товар</th>
-                            <th>Зона</th>
-                            <th>Количество</th>
-                            <th>Цена</th>
-                            <th>Итого</th>
+                            <th>Prece</th>
+                            <th>Zona</th>
+                            <th>Daudzums</th>
+                            <th>Cena</th>
+                            <th>Kopā</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -215,11 +222,11 @@
                 </table>
 
                 <div class="actions document-detail-actions">
-                    <a class="button secondary" href="{{ route('documents.print', $document) }}">Печать</a>
+                    <a class="button secondary" href="{{ route('documents.print', $document) }}">Drukāt</a>
                     @if (! $document->posted && ! $document->cancelled)
                         <a class="button secondary" href="{{ route('documents.edit', $document) }}">Labot</a>
                     @endif
-                    <a class="button secondary" href="{{ route('documents.show', $document) }}">Открыть страницу</a>
+                    <a class="button secondary" href="{{ route('documents.show', $document) }}">Atvērt lapu</a>
                 </div>
             </div>
         </dialog>
@@ -228,10 +235,10 @@
     <dialog class="modal" id="document-modal" data-open-on-load="{{ $errors->any() ? 'true' : 'false' }}">
         <div class="modal-head">
             <div>
-                <strong>Новый документ</strong>
-                <span>Заполните тип, склад, товары и сохраните документ как черновик.</span>
+                <strong>Jauns dokuments</strong>
+                <span>Aizpildiet tipu, noliktavu, preces un saglabājiet dokumentu kā melnrakstu.</span>
             </div>
-            <button class="button secondary" type="button" id="close-document-modal">Закрыть</button>
+            <button class="button secondary" type="button" id="close-document-modal">Aizvērt</button>
         </div>
         <div class="modal-body">
             @if ($errors->any())

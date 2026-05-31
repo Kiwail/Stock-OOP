@@ -26,6 +26,9 @@
                 <a href="{{ route('balances.index') }}" @class(['nav-link', 'active' => request()->routeIs('balances.*')])>Atlikumi</a>
                 <a href="{{ route('movements.index') }}" @class(['nav-link', 'active' => request()->routeIs('movements.*')])>Kustības</a>
                 <a href="{{ route('documents.index') }}" @class(['nav-link', 'active' => request()->routeIs('documents.index', 'documents.show')])>Dokumenti</a>
+                @if (auth()->user()->isAdmin())
+                    <a href="{{ route('admin.index') }}" @class(['nav-link', 'nav-link-accent', 'active' => request()->routeIs('admin.*')])>Administrēšana</a>
+                @endif
             </nav>
 
             <div class="app-user">

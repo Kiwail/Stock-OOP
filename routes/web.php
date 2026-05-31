@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
@@ -44,6 +45,8 @@ Route::middleware(['auth', 'firma'])->group(function () {
     Route::post('/documents/{document}/cancel', [DocumentController::class, 'cancel'])->name('documents.cancel')->middleware('admin');
 
     Route::middleware('admin')->group(function () {
+        Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+        Route::patch('/admin/users/{user}/role', [AdminController::class, 'updateUserRole'])->name('admin.users.role');
         Route::resource('products', ProductController::class)->except(['index', 'show']);
         Route::resource('warehouses', WarehouseController::class)->except(['index', 'show']);
     });

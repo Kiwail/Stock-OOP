@@ -37,6 +37,9 @@
             </p>
             <p>Datums: {{ $document->date_add?->format('d.m.Y H:i') }}</p>
             <p>Operators: {{ $document->operator?->name ?? '—' }}</p>
+            @if ($document->recipientFirma)
+                <p><strong>Saņēmēja uzņēmums:</strong> {{ $document->recipientFirma->name }}</p>
+            @endif
         </div>
         <div>
             @if ($document->sourceStock)

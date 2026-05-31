@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DocumentType;
+use App\Models\Firma;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\Stock;
@@ -54,6 +55,7 @@ class DocumentController extends Controller
                 'stockProducts' => $formData['stockProducts'],
                 'lineRows' => $formData['lineRows'],
                 'currentOperator' => $formData['currentOperator'],
+                'recipientFirms' => $formData['recipientFirms'],
             ],
         ));
     }
@@ -68,6 +70,7 @@ class DocumentController extends Controller
             'Date',
             'Source warehouse',
             'Destination warehouse',
+            'Recipient firma',
             'Operator',
             'Status',
             'Comment',
@@ -77,6 +80,7 @@ class DocumentController extends Controller
             $document->date_add?->format('Y-m-d H:i:s'),
             $document->sourceStock?->name,
             $document->destinationStock?->name,
+            $document->recipientFirma?->name,
             $document->operator?->name,
             $this->statusLabel($document),
             $document->comment,
@@ -147,7 +151,7 @@ class DocumentController extends Controller
     public function show(StockDocument $document): View
     {
         $this->authorizeDocument($document);
-        $document->load(['lines.product', 'sourceStock', 'destinationStock', 'operator']);
+        $document->load(['lines.product', 'sourceStock', 'destinationStock', 'operator', 'recipientFirma']);
 
         return view('documents.show', compact('document'));
     }
@@ -155,7 +159,7 @@ class DocumentController extends Controller
     public function print(StockDocument $document): View
     {
         $this->authorizeDocument($document);
-        $document->load(['lines.product', 'sourceStock', 'destinationStock', 'operator']);
+        $document->load(['lines.product', 'sourceStock', 'destinationStock', 'operator', 'recipientFirma']);
 
         return view('documents.print', compact('document'));
     }
@@ -182,6 +186,7 @@ class DocumentController extends Controller
             'comment' => ['nullable', 'string', 'max:500'],
             'source_stock_id' => ['nullable', 'exists:stock,id'],
             'destination_stock_id' => ['nullable', 'exists:stock,id'],
+            'recipient_firma_id' => ['nullable', Rule::exists('firma', 'id')->where(fn ($query) => $query->where('deleted', false))],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.product_id' => [
                 'required',
@@ -214,6 +219,7 @@ class DocumentController extends Controller
             'comment' => $data['comment'] ?? null,
             'source_stock_id' => $data['source_stock_id'] ?? null,
             'destination_stock_id' => $data['destination_stock_id'] ?? null,
+            'recipient_firma_id' => $type === DocumentType::Sale ? $data['recipient_firma_id'] ?? null : null,
             'operator_id' => Auth::id(),
             'firma_id' => $firmaId,
             'date_add' => $document->exists ? $document->date_add : now(),
@@ -299,7 +305,8 @@ class DocumentController extends Controller
 
         match ($type) {
             DocumentType::Income => abort_unless($data['destination_stock_id'], 422),
-            DocumentType::Writeoff, DocumentType::Sale => abort_unless($data['source_stock_id'], 422),
+            DocumentType::Writeoff => abort_unless($data['source_stock_id'], 422),
+            DocumentType::Sale => abort_unless($data['source_stock_id'] && $data['recipient_firma_id'], 422),
             DocumentType::Transfer => abort_unless(
                 $data['source_stock_id'] && $data['destination_stock_id']
                 && $data['source_stock_id'] !== $data['destination_stock_id'],
@@ -320,6 +327,10 @@ class DocumentController extends Controller
         $currentOperator = Auth::user();
         $products = Product::query()->where('deleted', false)->orderBy('name')->get();
         $warehouses = $this->warehouses(FirmaContext::firmaId());
+        $recipientFirms = Firma::query()
+            ->where('deleted', false)
+            ->orderBy('name')
+            ->get();
 
         $catalogProducts = $products->map(fn (Product $p) => [
             'id' => $p->id,
@@ -351,6 +362,7 @@ class DocumentController extends Controller
             'document',
             'products',
             'warehouses',
+            'recipientFirms',
             'catalogProducts',
             'stockProducts',
             'lineRows',
@@ -404,7 +416,7 @@ class DocumentController extends Controller
     private function filteredDocuments(Request $request, int $firmaId): \Illuminate\Database\Eloquent\Builder
     {
         return StockDocument::query()
-            ->with(['sourceStock', 'destinationStock', 'operator', 'lines.product'])
+            ->with(['sourceStock', 'destinationStock', 'operator', 'recipientFirma', 'lines.product'])
             ->where('firma_id', $firmaId)
             ->where('deleted', false)
             ->when($request->integer('type'), fn ($query, int $type) => $query->where('type', $type))
