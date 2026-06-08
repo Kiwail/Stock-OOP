@@ -84,33 +84,46 @@
                     <tr>
                         <th>Vārds</th>
                         <th>Email</th>
+                        <th>Uzņēmumi</th>
                         <th>Loma</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($users as $user)
-                        @php($role = $user->firmas->first()?->pivot?->role)
+                        @php
+                            $currentFirma = $user->firmas->firstWhere('id', \App\Support\FirmaContext::firmaId());
+                            $role = $currentFirma?->pivot?->role;
+                        @endphp
                         <tr>
                             <td>{{ $user->name }}</td>
                             <td>{{ $user->email }}</td>
                             <td>
-                                <form method="POST" action="{{ route('admin.users.role', $user) }}" class="role-form">
-                                    @csrf
-                                    @method('PATCH')
-                                    <select name="role">
-                                        @foreach (\App\Enums\UserRole::cases() as $case)
-                                            <option value="{{ $case->value }}" @selected($role === $case->value)>{{ $case->label() }}</option>
-                                        @endforeach
-                                    </select>
-                                    <button class="button secondary" type="submit">Saglabāt</button>
-                                </form>
+                                {{ $user->firmas->pluck('name')->join(', ') ?: '-' }}
+                            </td>
+                            <td>
+                                @if ($currentFirma)
+                                    <form method="POST" action="{{ route('admin.users.role', $user) }}" class="role-form">
+                                        @csrf
+                                        @method('PATCH')
+                                        <select name="role">
+                                            @foreach (\App\Enums\UserRole::cases() as $case)
+                                                <option value="{{ $case->value }}" @selected($role === $case->value)>{{ $case->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                        <button class="button secondary" type="submit">Saglabāt</button>
+                                    </form>
+                                @else
+                                    <span class="badge draft">Cits uzņēmums</span>
+                                @endif
                             </td>
                             <td>
                                 @if ($role === \App\Enums\UserRole::Admin->value)
                                     <span class="badge posted">Admin</span>
-                                @else
+                                @elseif ($role === \App\Enums\UserRole::Operator->value)
                                     <span class="badge draft">User</span>
+                                @else
+                                    <span class="badge cancelled">Nav pieejams</span>
                                 @endif
                             </td>
                         </tr>

@@ -8,15 +8,17 @@
             \App\Enums\DocumentType::Income->value => 'Saņemšana',
             \App\Enums\DocumentType::Writeoff->value => 'Norakstīšana',
             \App\Enums\DocumentType::Transfer->value => 'Pārvietošana',
-            \App\Enums\DocumentType::Sale->value => 'Realizācija',
         ];
         $activeType = (int) request('type', \App\Enums\DocumentType::Income->value);
+        if (! array_key_exists($activeType, $documentTabs)) {
+            $activeType = \App\Enums\DocumentType::Income->value;
+        }
     @endphp
 
     <div class="page-head">
         <div>
             <h1>Dokumenti</h1>
-            <p>Saņemšana, norakstīšana, pārvietošana un realizācija</p>
+            <p>Saņemšana, norakstīšana un pārvietošana</p>
         </div>
         <div class="actions">
             <a class="button secondary" href="{{ route('documents.export', array_merge(request()->query(), ['type' => $activeType])) }}">CSV</a>

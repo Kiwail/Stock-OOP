@@ -89,6 +89,27 @@ class ExampleTest extends TestCase
         $this->assertSame(UserRole::Admin->value, $role);
     }
 
+    public function test_admin_can_see_users_from_other_firmas(): void
+    {
+        $firma = Firma::query()->where('name', 'SIA Demo Noliktava')->firstOrFail();
+        $admin = User::query()->where('email', 'admin@instock.lv')->firstOrFail();
+
+        $otherUser = User::factory()->create([
+            'name' => 'Other Firma User',
+            'email' => 'other-firma@example.com',
+        ]);
+        $otherFirma = Firma::query()->create(['name' => 'SIA Other Firma']);
+        $otherFirma->users()->attach($otherUser->id, ['role' => UserRole::Operator->value]);
+
+        $this->actingAs($admin)
+            ->withSession(['firma_id' => $firma->id])
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('Other Firma User')
+            ->assertSee('SIA Other Firma')
+            ->assertSee('Cits uzņēmums');
+    }
+
     public function test_document_validation_sums_duplicate_product_lines(): void
     {
         $firma = Firma::query()->where('name', 'SIA Demo Noliktava')->firstOrFail();
@@ -128,6 +149,26 @@ class ExampleTest extends TestCase
                 ],
             ])
             ->assertSessionHasErrors('lines.0.product_id');
+    }
+
+    public function test_transfer_requires_different_source_and_destination_warehouses(): void
+    {
+        $firma = Firma::query()->where('name', 'SIA Demo Noliktava')->firstOrFail();
+        $admin = User::query()->where('email', 'admin@instock.lv')->firstOrFail();
+        $stock = Stock::query()->where('firma_id', $firma->id)->orderBy('id')->firstOrFail();
+        $batch = ProductStock::query()->where('firma_id', $firma->id)->where('stock_id', $stock->id)->firstOrFail();
+
+        $this->actingAs($admin)
+            ->withSession(['firma_id' => $firma->id])
+            ->post('/documents', [
+                'type' => DocumentType::Transfer->value,
+                'source_stock_id' => $stock->id,
+                'destination_stock_id' => $stock->id,
+                'lines' => [
+                    ['product_id' => $batch->product_id, 'cnt' => 1],
+                ],
+            ])
+            ->assertSessionHasErrors('destination_stock_id');
     }
 
     public function test_document_operator_is_current_authenticated_user(): void
@@ -170,6 +211,18 @@ class ExampleTest extends TestCase
         $this->get('/balances/export')->assertOk();
         $this->get('/movements')->assertOk();
         $this->get('/movements/export')->assertOk();
+    }
+
+    public function test_sale_document_type_is_hidden_from_document_creation_ui(): void
+    {
+        $firma = Firma::query()->where('name', 'SIA Demo Noliktava')->firstOrFail();
+        $admin = User::query()->where('email', 'admin@instock.lv')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->withSession(['firma_id' => $firma->id])
+            ->get('/documents')
+            ->assertOk()
+            ->assertDontSee('Realizācija');
     }
 
     public function test_draft_documents_can_be_edited_and_deleted(): void

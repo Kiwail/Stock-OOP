@@ -20,8 +20,7 @@ class AdminController extends Controller
         $firmaId = FirmaContext::firmaId();
 
         $users = User::query()
-            ->whereHas('firmas', fn ($query) => $query->where('firma.id', $firmaId))
-            ->with(['firmas' => fn ($query) => $query->where('firma.id', $firmaId)])
+            ->with('firmas')
             ->orderBy('name')
             ->get();
 

@@ -35,12 +35,20 @@ class DocumentController extends Controller
     public function index(Request $request): View
     {
         $firmaId = FirmaContext::firmaId();
+        $visibleTypes = [
+            DocumentType::Income->value,
+            DocumentType::Writeoff->value,
+            DocumentType::Transfer->value,
+        ];
+        $type = $request->integer('type') ?: DocumentType::Income->value;
+        $type = in_array($type, $visibleTypes, true) ? $type : DocumentType::Income->value;
+
         $request->merge([
-            'type' => $request->integer('type') ?: DocumentType::Income->value,
+            'type' => $type,
         ]);
 
         $createDocument = new StockDocument([
-            'type' => $request->integer('type'),
+            'type' => $type,
             'date_add' => now(),
         ]);
         $documents = $this->filteredDocuments($request, $firmaId)->get();
@@ -303,13 +311,24 @@ class DocumentController extends Controller
 
         abort_unless($validCount === $stockIds->count(), 403);
 
+        if (
+            $type === DocumentType::Transfer
+            && $data['source_stock_id']
+            && $data['destination_stock_id']
+            && (int) $data['source_stock_id'] === (int) $data['destination_stock_id']
+        ) {
+            throw ValidationException::withMessages([
+                'destination_stock_id' => 'Avota un merka noliktavai jabut atskirigai.',
+            ]);
+        }
+
         match ($type) {
             DocumentType::Income => abort_unless($data['destination_stock_id'], 422),
             DocumentType::Writeoff => abort_unless($data['source_stock_id'], 422),
             DocumentType::Sale => abort_unless($data['source_stock_id'] && $data['recipient_firma_id'], 422),
             DocumentType::Transfer => abort_unless(
                 $data['source_stock_id'] && $data['destination_stock_id']
-                && $data['source_stock_id'] !== $data['destination_stock_id'],
+                && (int) $data['source_stock_id'] !== (int) $data['destination_stock_id'],
                 422
             ),
         };

@@ -11,6 +11,7 @@
         @endif
         <select name="{{ $document->exists ? 'type' : '' }}" id="doc-type" required @disabled(! $document->exists)>
             @foreach (\App\Enums\DocumentType::cases() as $type)
+                @continue($type === \App\Enums\DocumentType::Sale && (int) old('type', $document->type) !== $type->value)
                 <option value="{{ $type->value }}" @selected((int) old('type', $document->type) === $type->value)>{{ $type->label() }}</option>
             @endforeach
         </select>
