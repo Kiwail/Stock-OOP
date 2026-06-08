@@ -145,22 +145,28 @@ class StockDocumentWorkflowTest extends TestCase
         $this->assertSame($firma->id, $document->fresh()->recipient_firma_id);
     }
 
-    public function test_operator_cannot_access_admin_product_or_warehouse_actions(): void
+    public function test_operator_can_create_products_and_warehouses(): void
     {
         $firma = $this->demoFirma();
         $operator = User::query()->where('email', 'operators@instock.lv')->firstOrFail();
 
         $this->actingAs($operator)->withSession(['firma_id' => $firma->id]);
 
-        $this->get('/products/create')->assertForbidden();
+        $this->get('/products/create')->assertOk();
         $this->post('/products', [
-            'name' => 'Restricted product',
+            'name' => 'Operator product',
             'purchase_price' => 1,
             'sale_price' => 2,
             'unit' => 1,
-        ])->assertForbidden();
-        $this->get('/warehouses/create')->assertForbidden();
-        $this->post('/warehouses', ['name' => 'Restricted warehouse'])->assertForbidden();
+        ])->assertRedirect('/products');
+        $this->get('/warehouses/create')->assertOk();
+        $this->post('/warehouses', ['name' => 'Operator warehouse'])->assertRedirect('/warehouses');
+
+        $this->assertDatabaseHas('product', ['name' => 'Operator product']);
+        $this->assertDatabaseHas('stock', [
+            'name' => 'Operator warehouse',
+            'firma_id' => $firma->id,
+        ]);
     }
 
     private function demoFirma(): Firma

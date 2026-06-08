@@ -10,9 +10,7 @@
         </div>
         <div class="actions">
             <a class="button secondary" href="{{ route('products.export') }}">CSV</a>
-            @if (auth()->user()->isAdmin())
-                <a class="button" href="{{ route('products.create') }}">Pievienot produktu</a>
-            @endif
+            <a class="button" href="{{ route('products.create') }}">Pievienot produktu</a>
         </div>
     </div>
 

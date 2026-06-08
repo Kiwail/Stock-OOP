@@ -26,7 +26,11 @@ Route::middleware(['auth', 'firma'])->group(function () {
 
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/export', [ProductController::class, 'export'])->name('products.export');
+    Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
     Route::get('/warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
+    Route::get('/warehouses/create', [WarehouseController::class, 'create'])->name('warehouses.create');
+    Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
     Route::get('/balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::get('/balances/export', [BalanceController::class, 'export'])->name('balances.export');
     Route::get('/movements', [MovementController::class, 'index'])->name('movements.index');
@@ -47,7 +51,7 @@ Route::middleware(['auth', 'firma'])->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
         Route::patch('/admin/users/{user}/role', [AdminController::class, 'updateUserRole'])->name('admin.users.role');
-        Route::resource('products', ProductController::class)->except(['index', 'show']);
-        Route::resource('warehouses', WarehouseController::class)->except(['index', 'show']);
+        Route::resource('products', ProductController::class)->except(['index', 'show', 'create', 'store']);
+        Route::resource('warehouses', WarehouseController::class)->except(['index', 'show', 'create', 'store']);
     });
 });

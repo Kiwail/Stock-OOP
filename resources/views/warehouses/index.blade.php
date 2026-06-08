@@ -8,9 +8,7 @@
             <h1>Noliktavas</h1>
             <p>Firmas noliktavu saraksts</p>
         </div>
-        @if (auth()->user()->isAdmin())
-            <a class="button" href="{{ route('warehouses.create') }}">Pievienot noliktavu</a>
-        @endif
+        <a class="button" href="{{ route('warehouses.create') }}">Pievienot noliktavu</a>
     </div>
 
     <div class="card">
