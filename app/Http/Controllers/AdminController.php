@@ -44,20 +44,21 @@ class AdminController extends Controller
 
     public function updateUserRole(Request $request, User $user): RedirectResponse
     {
-        $firma = FirmaContext::firma();
-        abort_unless($firma && $user->firmas()->where('firma.id', $firma->id)->exists(), 404);
-
         $attributes = $request->validate([
             'role' => ['required', Rule::enum(UserRole::class)],
+            'firma_id' => ['required', 'integer', Rule::exists('firma', 'id')->where(fn ($query) => $query->where('deleted', false))],
         ]);
+
+        $firmaId = (int) $attributes['firma_id'];
+        abort_unless($user->firmas()->where('firma.id', $firmaId)->exists(), 404);
 
         $newRole = UserRole::from($attributes['role']);
 
-        if ($newRole !== UserRole::Admin && $this->isLastAdmin($user->id, $firma->id)) {
+        if ($newRole !== UserRole::Admin && $this->isLastAdmin($user->id, $firmaId)) {
             return back()->with('error', 'Nevar noņemt tiesības pēdējam administratoram.');
         }
 
-        $firma->users()->updateExistingPivot($user->id, ['role' => $newRole->value]);
+        $user->firmas()->updateExistingPivot($firmaId, ['role' => $newRole->value]);
 
         return back()->with('success', 'Lietotāja tiesības atjauninātas.');
     }

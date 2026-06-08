@@ -34,7 +34,7 @@ class DocumentController extends Controller
 
     public function index(Request $request): View
     {
-        $firmaId = FirmaContext::firmaId();
+        $firmaId = $this->visibleFirmaId();
         $visibleTypes = [
             DocumentType::Income->value,
             DocumentType::Writeoff->value,
@@ -52,15 +52,16 @@ class DocumentController extends Controller
             'date_add' => now(),
         ]);
         $documents = $this->filteredDocuments($request, $firmaId)->get();
-        $warehouses = $this->warehouses($firmaId);
+        $filterWarehouses = $this->warehouses($firmaId);
         $operators = $this->operators($firmaId);
         $formData = $this->formData($createDocument);
 
         return view('documents.index', array_merge(
-            compact('documents', 'warehouses', 'operators', 'createDocument'),
+            compact('documents', 'filterWarehouses', 'operators', 'createDocument'),
             [
                 'catalogProducts' => $formData['catalogProducts'],
                 'stockProducts' => $formData['stockProducts'],
+                'warehouses' => $formData['warehouses'],
                 'lineRows' => $formData['lineRows'],
                 'currentOperator' => $formData['currentOperator'],
                 'recipientFirms' => $formData['recipientFirms'],
@@ -70,7 +71,7 @@ class DocumentController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $documents = $this->filteredDocuments($request, FirmaContext::firmaId())->get();
+        $documents = $this->filteredDocuments($request, $this->visibleFirmaId())->get();
 
         return $this->csv->download('documents.csv', [
             'ID',
@@ -98,6 +99,7 @@ class DocumentController extends Controller
     public function cancel(StockDocument $document): RedirectResponse
     {
         $this->authorizeDocument($document);
+        $this->authorizeCurrentFirmaDocument($document);
         abort_unless(FirmaContext::isAdmin(), 403);
 
         try {
@@ -175,6 +177,7 @@ class DocumentController extends Controller
     public function post(StockDocument $document): RedirectResponse
     {
         $this->authorizeDocument($document);
+        $this->authorizeCurrentFirmaDocument($document);
 
         try {
             $this->documents->post($document);
@@ -420,7 +423,7 @@ class DocumentController extends Controller
     private function authorizeDocument(StockDocument $document): void
     {
         abort_unless(
-            (int) $document->firma_id === (int) FirmaContext::firmaId() && ! $document->deleted,
+            (FirmaContext::isAdmin() || (int) $document->firma_id === (int) FirmaContext::firmaId()) && ! $document->deleted,
             404
         );
     }
@@ -428,15 +431,21 @@ class DocumentController extends Controller
     private function authorizeDraft(StockDocument $document): void
     {
         $this->authorizeDocument($document);
+        $this->authorizeCurrentFirmaDocument($document);
 
         abort_if($document->posted || $document->cancelled, 403);
     }
 
-    private function filteredDocuments(Request $request, int $firmaId): \Illuminate\Database\Eloquent\Builder
+    private function authorizeCurrentFirmaDocument(StockDocument $document): void
+    {
+        abort_unless((int) $document->firma_id === (int) FirmaContext::firmaId(), 403);
+    }
+
+    private function filteredDocuments(Request $request, ?int $firmaId): \Illuminate\Database\Eloquent\Builder
     {
         return StockDocument::query()
             ->with(['sourceStock', 'destinationStock', 'operator', 'recipientFirma', 'lines.product'])
-            ->where('firma_id', $firmaId)
+            ->when($firmaId, fn ($query, int $id) => $query->where('firma_id', $id))
             ->where('deleted', false)
             ->when($request->integer('type'), fn ($query, int $type) => $query->where('type', $type))
             ->when($request->filled('status'), function ($query) use ($request): void {
@@ -456,21 +465,26 @@ class DocumentController extends Controller
             ->orderByDesc('date_add');
     }
 
-    private function warehouses(int $firmaId): Collection
+    private function warehouses(?int $firmaId): Collection
     {
         return Stock::query()
-            ->where('firma_id', $firmaId)
+            ->when($firmaId, fn ($query, int $id) => $query->where('firma_id', $id))
             ->where('deleted', false)
             ->orderBy('name')
             ->get();
     }
 
-    private function operators(int $firmaId): Collection
+    private function operators(?int $firmaId): Collection
     {
         return User::query()
-            ->whereHas('firmas', fn ($query) => $query->where('firma.id', $firmaId))
+            ->when($firmaId, fn ($query, int $id) => $query->whereHas('firmas', fn ($firmas) => $firmas->where('firma.id', $id)))
             ->orderBy('name')
             ->get();
+    }
+
+    private function visibleFirmaId(): ?int
+    {
+        return FirmaContext::isAdmin() ? null : FirmaContext::firmaId();
     }
 
     private function statusLabel(StockDocument $document): string

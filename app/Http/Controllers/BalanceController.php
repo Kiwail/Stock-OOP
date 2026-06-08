@@ -20,7 +20,7 @@ class BalanceController extends Controller
 
     public function index(Request $request): View
     {
-        $firmaId = FirmaContext::firmaId();
+        $firmaId = $this->visibleFirmaId();
         $warehouses = $this->warehouses($firmaId);
         $products = Product::query()->where('deleted', false)->orderBy('name')->get();
         $zones = $this->zones($firmaId);
@@ -33,7 +33,7 @@ class BalanceController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $firmaId = FirmaContext::firmaId();
+        $firmaId = $this->visibleFirmaId();
         $stockId = $request->filled('stock_id') ? $request->integer('stock_id') : null;
         $balances = $this->filteredBalances($request, $firmaId, $stockId)->get();
 
@@ -58,12 +58,12 @@ class BalanceController extends Controller
         ]));
     }
 
-    private function filteredBalances(Request $request, int $firmaId, ?int $stockId): \Illuminate\Database\Eloquent\Builder
+    private function filteredBalances(Request $request, ?int $firmaId, ?int $stockId): \Illuminate\Database\Eloquent\Builder
     {
         return ProductStock::query()
             ->with(['product', 'stock', 'incomeDocument'])
             ->whereHas('product', fn ($query) => $query->where('deleted', false))
-            ->where('firma_id', $firmaId)
+            ->when($firmaId, fn ($query, int $id) => $query->where('firma_id', $id))
             ->where('cnt', '>', 0)
             ->when($stockId, fn ($q) => $q->where('stock_id', $stockId))
             ->when($request->integer('product_id'), fn ($query, int $id) => $query->where('product_id', $id))
@@ -74,22 +74,27 @@ class BalanceController extends Controller
             ->orderBy('zone');
     }
 
-    private function warehouses(int $firmaId): Collection
+    private function warehouses(?int $firmaId): Collection
     {
         return Stock::query()
-            ->where('firma_id', $firmaId)
+            ->when($firmaId, fn ($query, int $id) => $query->where('firma_id', $id))
             ->where('deleted', false)
             ->orderBy('name')
             ->get();
     }
 
-    private function zones(int $firmaId): Collection
+    private function zones(?int $firmaId): Collection
     {
         return ProductStock::query()
-            ->where('firma_id', $firmaId)
+            ->when($firmaId, fn ($query, int $id) => $query->where('firma_id', $id))
             ->where('cnt', '>', 0)
             ->distinct()
             ->orderBy('zone')
             ->pluck('zone');
+    }
+
+    private function visibleFirmaId(): ?int
+    {
+        return FirmaContext::isAdmin() ? null : FirmaContext::firmaId();
     }
 }

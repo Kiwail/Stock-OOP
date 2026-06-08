@@ -93,7 +93,8 @@
                     @foreach ($users as $user)
                         @php
                             $currentFirma = $user->firmas->firstWhere('id', \App\Support\FirmaContext::firmaId());
-                            $role = $currentFirma?->pivot?->role;
+                            $managedFirma = $currentFirma ?? $user->firmas->first();
+                            $role = $managedFirma?->pivot?->role;
                         @endphp
                         <tr>
                             <td>{{ $user->name }}</td>
@@ -102,10 +103,11 @@
                                 {{ $user->firmas->pluck('name')->join(', ') ?: '-' }}
                             </td>
                             <td>
-                                @if ($currentFirma)
+                                @if ($managedFirma)
                                     <form method="POST" action="{{ route('admin.users.role', $user) }}" class="role-form">
                                         @csrf
                                         @method('PATCH')
+                                        <input type="hidden" name="firma_id" value="{{ $managedFirma->id }}">
                                         <select name="role">
                                             @foreach (\App\Enums\UserRole::cases() as $case)
                                                 <option value="{{ $case->value }}" @selected($role === $case->value)>{{ $case->label() }}</option>
@@ -114,7 +116,7 @@
                                         <button class="button secondary" type="submit">Saglabāt</button>
                                     </form>
                                 @else
-                                    <span class="badge draft">Cits uzņēmums</span>
+                                    <span class="badge cancelled">Nav uzņēmuma</span>
                                 @endif
                             </td>
                             <td>

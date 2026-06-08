@@ -20,7 +20,7 @@ class MovementController extends Controller
 
     public function index(Request $request): View
     {
-        $firmaId = FirmaContext::firmaId();
+        $firmaId = $this->visibleFirmaId();
         $movements = $this->filteredMovements($request, $firmaId)->get();
         $products = Product::query()->where('deleted', false)->orderBy('name')->get();
         $warehouses = $this->warehouses($firmaId);
@@ -30,7 +30,7 @@ class MovementController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $movements = $this->filteredMovements($request, FirmaContext::firmaId())->get();
+        $movements = $this->filteredMovements($request, $this->visibleFirmaId())->get();
 
         return $this->csv->download('stock-movements.csv', [
             'Document',
@@ -53,11 +53,11 @@ class MovementController extends Controller
         ]));
     }
 
-    private function filteredMovements(Request $request, int $firmaId): \Illuminate\Database\Eloquent\Builder
+    private function filteredMovements(Request $request, ?int $firmaId): \Illuminate\Database\Eloquent\Builder
     {
         return StockDocumentLedger::query()
             ->with(['document', 'product', 'stock', 'incomeDocument'])
-            ->where('firma_id', $firmaId)
+            ->when($firmaId, fn ($query, int $id) => $query->where('firma_id', $id))
             ->when($request->integer('product_id'), fn ($query, int $id) => $query->where('product_id', $id))
             ->when($request->integer('stock_id'), fn ($query, int $id) => $query->where('stock_id', $id))
             ->when($request->filled('zone'), fn ($query) => $query->where('zone', $request->string('zone')->toString()))
@@ -66,12 +66,17 @@ class MovementController extends Controller
             ->orderByDesc('id');
     }
 
-    private function warehouses(int $firmaId): Collection
+    private function warehouses(?int $firmaId): Collection
     {
         return Stock::query()
-            ->where('firma_id', $firmaId)
+            ->when($firmaId, fn ($query, int $id) => $query->where('firma_id', $id))
             ->where('deleted', false)
             ->orderBy('name')
             ->get();
+    }
+
+    private function visibleFirmaId(): ?int
+    {
+        return FirmaContext::isAdmin() ? null : FirmaContext::firmaId();
     }
 }

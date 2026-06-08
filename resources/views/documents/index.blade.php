@@ -56,7 +56,7 @@
                     Avota noliktava
                     <select name="source_stock_id">
                         <option value="">Visas</option>
-                        @foreach ($warehouses as $warehouse)
+                        @foreach ($filterWarehouses as $warehouse)
                             <option value="{{ $warehouse->id }}" @selected((int) request('source_stock_id') === $warehouse->id)>{{ $warehouse->name }}</option>
                         @endforeach
                     </select>
@@ -65,7 +65,7 @@
                     Mērķa noliktava
                     <select name="destination_stock_id">
                         <option value="">Visas</option>
-                        @foreach ($warehouses as $warehouse)
+                        @foreach ($filterWarehouses as $warehouse)
                             <option value="{{ $warehouse->id }}" @selected((int) request('destination_stock_id') === $warehouse->id)>{{ $warehouse->name }}</option>
                         @endforeach
                     </select>
@@ -140,7 +140,7 @@
                         </td>
                         <td class="actions">
                             <button class="button secondary open-detail-modal" type="button" data-modal-target="document-detail-{{ $document->id }}">Skatīt</button>
-                            @if (! $document->posted && ! $document->cancelled)
+                            @if (! $document->posted && ! $document->cancelled && (int) $document->firma_id === (int) \App\Support\FirmaContext::firmaId())
                                 <a class="button secondary" href="{{ route('documents.edit', $document) }}">Labot</a>
                             @endif
                         </td>
@@ -225,7 +225,7 @@
 
                 <div class="actions document-detail-actions">
                     <a class="button secondary" href="{{ route('documents.print', $document) }}">Drukāt</a>
-                    @if (! $document->posted && ! $document->cancelled)
+                    @if (! $document->posted && ! $document->cancelled && (int) $document->firma_id === (int) \App\Support\FirmaContext::firmaId())
                         <a class="button secondary" href="{{ route('documents.edit', $document) }}">Labot</a>
                     @endif
                     <a class="button secondary" href="{{ route('documents.show', $document) }}">Atvērt lapu</a>

@@ -11,7 +11,7 @@
         <div class="actions">
             <a class="button secondary" href="{{ route('documents.index') }}">Atpakaļ</a>
             <a class="button secondary" href="{{ route('documents.print', $document) }}">Drukāt</a>
-            @if (! $document->posted && ! $document->cancelled)
+            @if (! $document->posted && ! $document->cancelled && (int) $document->firma_id === (int) \App\Support\FirmaContext::firmaId())
                 <a class="button secondary" href="{{ route('documents.edit', $document) }}">Labot</a>
                 <form method="POST" action="{{ route('documents.post', $document) }}" onsubmit="return confirm('Apstiprināt dokumentu? Atlikumi tiks mainīti.')">
                     @csrf
@@ -23,7 +23,7 @@
                     <button class="button ghost" type="submit">Dzēst melnrakstu</button>
                 </form>
             @endif
-            @if ($document->posted && ! $document->cancelled && auth()->user()->isAdmin())
+            @if ($document->posted && ! $document->cancelled && auth()->user()->isAdmin() && (int) $document->firma_id === (int) \App\Support\FirmaContext::firmaId())
                 <form method="POST" action="{{ route('documents.cancel', $document) }}" onsubmit="return confirm('Atcelt dokumentu? Atlikumi tiks atgriezti.')">
                     @csrf
                     <button class="button ghost" type="submit">Atcelt dokumentu</button>
